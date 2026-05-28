@@ -1204,10 +1204,7 @@ def mac_apply_list(
     if remove:
         # Bulk removal: build ONE range spanning all target paragraphs, call
         # removeNumbers once. Avoids per-paragraph AppleEvent overhead.
-        # Also clear list formatting from header/footer stories so old list
-        # templates with linkedStyle="Normal" don't bleed list markers into
-        # those areas of the document.
-        return _run_jxa(f"""
+        body_result = _run_jxa(f"""
 var app = Application("Microsoft Word");
 {finder}
 var paraCount = d.paragraphs.length;
@@ -1225,30 +1222,44 @@ if (endIdx > startIdx) {{
     r.listFormat.removeNumbers();
     bodyCount = endIdx - startIdx;
 }}
-// Clear list formatting from header/footer story ranges across all sections.
-// These are stored separately from main body paragraphs and don't get touched
-// by removeNumbers on main body range.
-var headerFooterCleared = 0;
-try {{
-    var sections = d.sections();
-    for (var si = 0; si < sections.length; si++) {{
-        var sec = sections[si];
-        var headerTypes = ["primary header", "first page header", "even pages header"];
-        var footerTypes = ["primary footer", "first page footer", "even pages footer"];
-        var headerFooterNames = headerTypes.concat(footerTypes);
-        for (var hi = 0; hi < headerFooterNames.length; hi++) {{
-            try {{
-                var hf = (hi < 3) ? sec.headers[headerFooterNames[hi]] : sec.footers[headerFooterNames[hi]];
-                if (hf && hf.textObject) {{
-                    hf.textObject.listFormat.removeNumbers();
-                    headerFooterCleared++;
-                }}
-            }} catch(eh) {{}}
-        }}
-    }}
-}} catch(eg) {{}}
-JSON.stringify({{removed: true, count: bodyCount, headerFooterCleared: headerFooterCleared}});
+JSON.stringify({{removed: true, count: bodyCount}});
 """, timeout=120)
+        body_data = json.loads(body_result)
+
+        # Clear list formatting from header/footer stories via VBA (do Visual Basic).
+        # JXA's sec.headers[...] / sec.footers[...] accessors don't reliably return
+        # HeaderFooter objects, but VBA's Sections collection works cleanly.
+        try:
+            hf_result = _run_applescript("""
+tell application "Microsoft Word"
+    do Visual Basic "
+Dim sec As Section
+Dim hf As HeaderFooter
+Dim n As Long
+n = 0
+For Each sec In ActiveDocument.Sections
+    For Each hf In sec.Footers
+        hf.Range.ListFormat.RemoveNumbers
+        n = n + 1
+    Next
+    For Each hf In sec.Headers
+        hf.Range.ListFormat.RemoveNumbers
+        n = n + 1
+    Next
+Next
+ActiveDocument.Variables(\\"_lastHFCleared\\").Value = CStr(n)
+"
+    set rawN to (do Visual Basic "ActiveDocument.Variables(\"_lastHFCleared\").Value")
+    return rawN
+end tell
+""", timeout=30)
+            hf_cleared = int(hf_result.strip() or "0")
+        except Exception as e:
+            hf_cleared = 0
+            body_data["headerFooterError"] = str(e)[:200]
+
+        body_data["headerFooterCleared"] = hf_cleared
+        return json.dumps(body_data)
 
     if list_type == "multilevel":
         nf = dict(number_format or {"1": "%1.", "2": "%1.%2."})
