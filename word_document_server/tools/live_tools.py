@@ -341,6 +341,7 @@ async def word_live_apply_list(
     start_at: dict = None,
     level_map: dict = None,
     track_changes: bool = False,
+    font_color: str = None,
 ) -> str:
     """[Windows only] Apply or remove bullet/numbered/multilevel list formatting on paragraphs.
 
@@ -366,17 +367,30 @@ async def word_live_apply_list(
         start_at: (multilevel only) Dict mapping level (int) to starting number.
             Example: {1: 5} → numbering starts at 5.
             If not provided, starts at 1.
-        level_map: (multilevel only) Dict mapping paragraph index (int) to list level (int, 1-indexed).
-            Example: {29: 2, 30: 2, 37: 3} → para 29 at level 2, para 37 at level 3.
-            Paragraphs not in the map stay at level 1 (or the value of `level + 1`).
-            Applied AFTER the list template, so the template covers the full range.
+        level_map: (multilevel only) Dict for per-paragraph list level. Two formats:
+            1) {para_index (int): level (int)} — numeric paragraph indices.
+            2) {heading_text (str): level (int)} — match by text, robust to index shifts.
+               Mac-only: when keys are heading texts, matching is case-insensitive with
+               apostrophe/whitespace normalization and supports startsWith fallback.
+            Paragraphs not in the map stay at level 1 (or value of `level + 1`).
         track_changes: Track changes as revisions.
+        font_color: (Mac multilevel only) Override font color on list-formatted paragraphs.
+            Hex string like "#0D0D0D". Applied after list formatting to override Word's
+            blue heading defaults when list templates link to heading styles.
 
     Returns:
         JSON with result info.
     """
     if _MAC_AVAILABLE:
-        return json.dumps({"error": "word_live_apply_list is not yet implemented on macOS"})
+        from word_document_server.core.word_mac import mac_apply_list
+        return mac_apply_list(
+            filename=filename, start_paragraph=start_paragraph,
+            end_paragraph=end_paragraph, list_type=list_type, level=level,
+            remove=remove, continue_previous=continue_previous,
+            number_format=number_format, number_style=number_style,
+            start_at=start_at, level_map=level_map, track_changes=track_changes,
+            font_color=font_color,
+        )
 
     if sys.platform != "win32":
         return json.dumps({"error": "Live editing is only available on Windows"})
@@ -559,7 +573,26 @@ async def word_live_setup_heading_numbering(
     import re
 
     if _MAC_AVAILABLE:
-        return json.dumps({"error": "word_live_setup_heading_numbering is not yet implemented on macOS"})
+        from word_document_server.core.word_mac import mac_setup_heading_numbering
+        return mac_setup_heading_numbering(
+            filename=filename,
+            h1_paragraphs=h1_paragraphs,
+            h2_paragraphs=h2_paragraphs,
+            strip_manual_numbers=strip_manual_numbers,
+            h1_number_format=h1_number_format,
+            h2_number_format=h2_number_format,
+            font_name=font_name,
+            h1_size=h1_size,
+            h2_size=h2_size,
+            bold=bold,
+            alignment=alignment,
+            font_color=font_color,
+            h1_space_before=h1_space_before,
+            h1_space_after=h1_space_after,
+            h2_space_before=h2_space_before,
+            h2_space_after=h2_space_after,
+            line_spacing=line_spacing,
+        )
 
     if sys.platform != "win32":
         return json.dumps({"error": "Live tools only on Windows"})

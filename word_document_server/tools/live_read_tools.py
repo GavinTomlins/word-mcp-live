@@ -258,7 +258,19 @@ async def word_live_get_text(filename: str = None) -> str:
         JSON with paragraphs list.
     """
     if _MAC_AVAILABLE:
-        from word_document_server.core.word_mac import mac_get_text
+        from word_document_server.core.word_mac import mac_get_text, mac_get_info, mac_get_page_text
+        info = json.loads(mac_get_info(filename=filename))
+        total_pages = info.get("pages", 1)
+        if total_pages > 5:
+            result = json.loads(mac_get_page_text(filename=filename, page=1, end_page=3))
+            result["truncated"] = True
+            result["total_pages"] = total_pages
+            result["message"] = (
+                f"Document has {total_pages} pages. "
+                f"Showing first 3 pages only. Use word_live_get_page_text(page=N, end_page=M) "
+                f"to read specific pages."
+            )
+            return json.dumps(result, ensure_ascii=False)
         return mac_get_text(filename=filename)
 
     if sys.platform != "win32":

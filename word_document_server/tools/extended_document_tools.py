@@ -136,6 +136,19 @@ async def convert_to_pdf(filename: str, output_filename: Optional[str] = None) -
             elif system in ["Linux", "Darwin"]:  # Linux or macOS
                 errors = []
 
+                # --- Attempt 0 (macOS only): JXA save-as-PDF from open document ---
+                if system == "Darwin":
+                    try:
+                        from word_document_server.core.word_mac import mac_save_as_pdf
+                        result_json = mac_save_as_pdf(filename=filename, output_path=output_filename)
+                        import json as _json
+                        result_data = _json.loads(result_json)
+                        if result_data.get("converted") and os.path.exists(output_filename):
+                            return f"Document successfully converted to PDF via Word JXA: {output_filename}"
+                        errors.append(f"JXA save-as-PDF returned but file not created: {result_json}")
+                    except Exception as e:
+                        errors.append(f"JXA save-as-PDF failed: {str(e)}")
+
                 # --- Attempt 1: LibreOffice ---
                 lo_commands = []
                 if system == "Darwin":  # macOS

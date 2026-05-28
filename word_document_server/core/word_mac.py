@@ -68,6 +68,22 @@ def _escape_as(s: str) -> str:
     return s.replace("\\", "\\\\").replace('"', '\\"')
 
 
+def _color_to_word_int(hex_color: str) -> int:
+    """Convert #RRGGBB hex to Word BGR integer."""
+    c = hex_color.lstrip("#")
+    r, g, b = int(c[0:2], 16), int(c[2:4], 16), int(c[4:6], 16)
+    return r + (g * 256) + (b * 65536)
+
+
+def _color_to_mac_rgb(hex_color: str) -> str:
+    """Convert #RRGGBB hex to Mac Word 16-bit RGB list string '[R, G, B]'.
+    Mac Word AppleScript/JXA requires RGB as 3-element list of 16-bit ints (0-65535).
+    Single-integer color assignment is silently ignored on Mac."""
+    c = hex_color.lstrip("#")
+    r, g, b = int(c[0:2], 16), int(c[2:4], 16), int(c[4:6], 16)
+    return f"[{r * 257}, {g * 257}, {b * 257}]"
+
+
 def _escape_js(s: str) -> str:
     """Escape a Python string for safe embedding in JavaScript."""
     return (
@@ -195,6 +211,21 @@ JSON.stringify({{
 """)
 
 
+def mac_save_as_pdf(filename: str = None, output_path: str = None) -> str:
+    """Save document as PDF without closing it."""
+    finder = _doc_finder_js(filename)
+    if not output_path:
+        return json.dumps({"error": "output_path required"})
+    escaped_path = _escape_js(output_path)
+    return _run_jxa(f"""
+var app = Application("Microsoft Word");
+{finder}
+d.save();
+app.saveAs(d, {{fileName: "{escaped_path}", fileFormat: "format PDF"}});
+JSON.stringify({{converted: true, path: "{escaped_path}"}});
+""")
+
+
 def mac_save(filename: str = None, save_as: str = None) -> str:
     """Save the document."""
     finder = _doc_finder_js(filename)
@@ -310,7 +341,8 @@ def mac_find_text(
 var app = Application("Microsoft Word");
 {finder}
 var sel = app.selection;
-sel.homeKey({{unit: "a story", extend: "move"}});
+sel.selectionStart = 0;
+sel.selectionEnd = 0;
 var f = sel.findObject;
 f.clearFormatting();
 f.replacement.clearFormatting();
@@ -528,7 +560,8 @@ var prevTracking = d.trackRevisions();
 if ({"true" if track_changes else "false"}) d.trackRevisions = true;
 try {{
     var sel = app.selection;
-    sel.homeKey({{unit: "a story", extend: "move"}});
+    sel.selectionStart = 0;
+    sel.selectionEnd = 0;
     var f = sel.findObject;
     f.clearFormatting();
     f.replacement.clearFormatting();
@@ -598,13 +631,18 @@ var r = d.createRange({{start: startP, end: endP}});
     if font_size is not None:
         fmt_lines.append(f"r.fontObject.fontSize = {font_size};")
     if font_color:
-        fmt_lines.append(f'r.fontObject.color = "{_escape_js(font_color)}";')
+        fmt_lines.append(f'r.fontObject.color = {_color_to_mac_rgb(font_color)};')
     if highlight_color:
         fmt_lines.append(f'r.highlightColorIndex = "{_escape_js(highlight_color)}";')
     if style_name:
-        fmt_lines.append(f'r.style = "{_escape_js(style_name)}";')
+        fmt_lines.append(f'r.style = d.wordStyles["{_escape_js(style_name.lower())}"];')
     if paragraph_alignment:
-        fmt_lines.append(f'r.paragraphFormat.alignment = "{_escape_js(paragraph_alignment)}";')
+        _align_map = {"left": "align paragraph left", "center": "align paragraph center",
+                      "right": "align paragraph right", "justify": "align paragraph justify",
+                      "0": "align paragraph left", "1": "align paragraph center",
+                      "2": "align paragraph right", "3": "align paragraph justify"}
+        _align_val = _align_map.get(paragraph_alignment.lower().strip(), paragraph_alignment)
+        fmt_lines.append(f'r.paragraphFormat.alignment = "{_escape_js(_align_val)}";')
     if page_break_before is not None:
         fmt_lines.append(f"r.paragraphFormat.pageBreakBefore = {'true' if page_break_before else 'false'};")
     fmt_js = "\n    ".join(fmt_lines)
@@ -617,6 +655,18 @@ if ({"true" if track_changes else "false"}) d.trackRevisions = true;
 try {{
     {range_js}
     {fmt_js}
+    // Prevent bold bleed: unbold paragraph marks within the range
+    {"" if bold is not True else """
+    var rStart = r.startOfContent();
+    var rEnd = r.endOfContent();
+    var txt = r.content();
+    for (var pi = 0; pi < txt.length; pi++) {
+        if (txt[pi] === '\\r') {
+            var pm = d.createRange({start: rStart + pi, end: rStart + pi + 1});
+            pm.bold = false;
+        }
+    }
+    """}
 }} finally {{
     d.trackRevisions = prevTracking;
 }}
@@ -980,46 +1030,36 @@ def mac_add_table(
 ) -> str:
     """Add a table to the document."""
     finder = _doc_finder_js(filename)
-    # Build data population JS
+    pos_js = "var pos = d.textObject.endOfContent() - 1;" if position == "end" else f"var pos = {position};"
+    if position == "start":
+        pos_js = "var pos = 0;"
+
     data_js = ""
     if data:
         data_json = json.dumps(data)
         data_js = f"""
     var data = {data_json};
-    for (var r = 0; r < Math.min(data.length, {rows}); r++) {{
-        for (var c = 0; c < Math.min(data[r].length, {cols}); c++) {{
-            var cell = app.getCellFromTable(tbl, {{row: r + 1, column: c + 1}});
-            cell.textObject.content = String(data[r][c]);
+    for (var ri = 0; ri < Math.min(data.length, {rows}); ri++) {{
+        for (var ci = 0; ci < Math.min(data[ri].length, {cols}); ci++) {{
+            var tRef = d.tables[d.tables.length - 1];
+        var cell = app.getCellFromTable(tRef, {{row: ri + 1, column: ci + 1}});
+            cell.textObject.content = String(data[ri][ci]);
         }}
     }}
 """
-    pos_js = "var pos = d.textObject.endOfContent() - 1;" if position == "end" else f"var pos = {position};"
-    if position == "start":
-        pos_js = "var pos = 0;"
 
     return _run_jxa(f"""
 var app = Application("Microsoft Word");
 {finder}
-var prevTracking = d.trackRevisions();
-if ({"true" if track_changes else "false"}) d.trackRevisions = true;
-try {{
-    {pos_js}
-    var r = d.createRange({{start: pos, end: pos}});
-    // Insert tab-delimited text and convert to table
-    var rows = [];
-    for (var i = 0; i < {rows}; i++) {{
-        var cells = [];
-        for (var j = 0; j < {cols}; j++) cells.push(" ");
-        rows.push(cells.join("\\t"));
-    }}
-    r.content = rows.join("\\r");
-    var newRange = d.createRange({{start: pos, end: pos + rows.join("\\r").length}});
-    var tbl = app.convertToTable(newRange, {{numberOfColumns: {cols}, separator: "separate by tabs"}});
-    {data_js}
-}} finally {{
-    d.trackRevisions = prevTracking;
-}}
-JSON.stringify({{added: true, tables: d.tables.length}});
+{pos_js}
+var rng = app.createRange(d, {{start: pos, end: pos}});
+var t = app.make({{new: "table", at: d, withProperties: {{
+    textObject: rng,
+    numberOfRows: {rows},
+    numberOfColumns: {cols}
+}}}});
+{data_js}
+JSON.stringify({{added: true, rows: {rows}, cols: {cols}, tables: d.tables.length}});
 """)
 
 
@@ -1128,3 +1168,423 @@ app.activate();
         size = os.path.getsize(output_path)
         return json.dumps({"captured": True, "path": output_path, "size": size})
     return json.dumps({"error": "Screen capture failed"})
+
+
+def mac_apply_list(
+    filename: str = None,
+    start_paragraph: int = None,
+    end_paragraph: int = None,
+    list_type: str = "bullet",
+    level: int = 0,
+    remove: bool = False,
+    continue_previous: bool = False,
+    number_format: dict = None,
+    number_style: dict = None,
+    start_at: dict = None,
+    level_map: dict = None,
+    track_changes: bool = False,
+    font_color: str = None,
+) -> str:
+    """Apply list formatting to paragraphs on Mac using AppleScript."""
+    if start_paragraph is None:
+        return json.dumps({"error": "start_paragraph required"})
+    ep = end_paragraph or start_paragraph
+
+    finder = _doc_finder_js(filename)
+
+    if remove:
+        return _run_jxa(f"""
+var app = Application("Microsoft Word");
+{finder}
+for (var i = {start_paragraph - 1}; i < {ep}; i++) {{
+    var p = d.paragraphs[i];
+    var r = d.createRange({{start: p.textObject.startOfContent(), end: p.textObject.endOfContent()}});
+    r.listFormat.removeNumbers();
+}}
+JSON.stringify({{removed: true, count: {ep - start_paragraph + 1}}});
+""")
+
+    if list_type == "multilevel":
+        nf = dict(number_format or {"1": "%1.", "2": "%1.%2."})
+        ns = dict(number_style or {})
+        sa = dict(start_at or {})
+        lm = level_map or {}
+        if "3" not in nf:
+            nf["3"] = "(%3)"
+        if "3" not in ns:
+            ns["3"] = "lowercase_letter"
+        style_map = {
+            "arabic": "list number style arabic",
+            "lowercase_letter": "list number style lowercase letter",
+            "uppercase_letter": "list number style uppercase letter",
+            "lowercase_roman": "list number style lowercase roman",
+            "uppercase_roman": "list number style upper case roman",
+        }
+        levels_js = ""
+        for lvl_str, fmt in nf.items():
+            lvl = int(lvl_str)
+            ns_val = style_map.get(str(ns.get(str(lvl), ns.get(lvl, "arabic"))), "list number style arabic")
+            sa_val = sa.get(str(lvl), sa.get(lvl, 1))
+            indent = 28 * (lvl - 1)
+            text_indent = indent + 28 if lvl > 1 else 0
+            levels_js += f"""
+    var lv{lvl} = lt.listLevels[{lvl - 1}];
+    lv{lvl}.numberFormat = "{_escape_js(fmt)}";
+    lv{lvl}.numberStyle = "{ns_val}";
+    lv{lvl}.startAt = {sa_val};
+    lv{lvl}.numberPosition = {indent};
+    lv{lvl}.textPosition = {text_indent};
+    lv{lvl}.linkedStyle = "Normal";
+"""
+        default_lvl = level + 1 if level > 0 else 1
+
+        # Detect level_map format:
+        # 1) {heading_text: level_number} — text-to-level mapping (keys non-numeric)
+        # 2) {para_index: level_number} — numeric indices (keys numeric, values numeric)
+        # 3) {index: heading_text_string} — legacy heading texts (keys numeric, values non-numeric)
+        heading_level_map = None
+        heading_texts = None
+        lm_js = "{}"
+        if lm:
+            has_text_keys = any(not str(k).strip().isdigit() for k in lm.keys())
+            if has_text_keys:
+                heading_level_map = {}
+                for k, v in lm.items():
+                    try:
+                        heading_level_map[str(k)] = int(v)
+                    except (ValueError, TypeError):
+                        heading_level_map[str(k)] = 1
+            else:
+                try:
+                    lm_js = json.dumps({str(k): int(v) for k, v in lm.items()})
+                except (ValueError, TypeError):
+                    heading_texts = [str(v) for v in lm.values()]
+
+        if heading_level_map:
+            map_json = json.dumps(heading_level_map, ensure_ascii=False)
+            return _run_jxa(f"""
+var app = Application("Microsoft Word");
+{finder}
+var lt = app.make({{new: "listTemplate", at: d, withProperties: {{outlineNumbered: true}}}});
+{levels_js}
+var headingMap = {map_json};
+var norm = function(s) {{ return s.toUpperCase().replace(/[\\u2018\\u2019\\u201C\\u201D\\u0027\\u0022]/g, "\\u0027").replace(/\\s+/g, " ").trim(); }};
+var numPrefixRe = /^\\s*\\d{{1,2}}\\.\\d{{1,2}}[\\.:]?[\\s\\t]*/;
+var letterReA = /^\\([a-zğüşıöç]\\)[\\s\\t]/;
+var romanChars = "ivxlcdm";
+var normalizedMap = {{}};
+for (var key in headingMap) normalizedMap[norm(key)] = headingMap[key];
+var paras = d.paragraphs();
+var counts = [0, 0, 0, 0];
+var totalApplied = 0;
+var firstH1 = -1;
+
+for (var i = 0; i < paras.length; i++) {{
+    var raw = paras[i].textObject.content().replace(/[\\r\\n]/g, "");
+    if (raw.length === 0) continue;
+    var pText = norm(raw);
+    var pTextNoNum = norm(raw.replace(numPrefixRe, ""));
+    var level = 0;
+    var matchedKey = null;
+
+    // Exact match on full text
+    if (normalizedMap[pText] !== undefined) {{
+        level = normalizedMap[pText]; matchedKey = pText;
+    }}
+    // Exact match after stripping numeric prefix
+    if (level === 0 && pTextNoNum !== pText && normalizedMap[pTextNoNum] !== undefined) {{
+        level = normalizedMap[pTextNoNum]; matchedKey = pTextNoNum;
+    }}
+    // startsWith match
+    if (level === 0) {{
+        for (var key in normalizedMap) {{
+            if (pText.indexOf(key) === 0 || (pTextNoNum !== pText && pTextNoNum.indexOf(key) === 0)) {{
+                level = normalizedMap[key]; matchedKey = key; break;
+            }}
+        }}
+    }}
+    // Auto-detect (a)/(b) lettered items as Level 3, after first heading
+    if (level === 0 && firstH1 >= 0 && raw.length > 10) {{
+        if (letterReA.test(raw)) {{
+            level = 3;
+        }} else {{
+            var ch = raw.charAt(0);
+            if (ch >= ‘a’ && ch <= ‘z’ && romanChars.indexOf(ch) === -1 && /^[a-z]\\)[\\s\\t]/.test(raw)) {{
+                level = 3;
+            }}
+        }}
+    }}
+
+    if (level > 0) {{
+        // Strip manual prefixes for auto-numbered levels
+        if (matchedKey) delete normalizedMap[matchedKey];
+        if (level >= 2 && numPrefixRe.test(raw)) {{
+            var stripped = raw.replace(numPrefixRe, "");
+            if (stripped !== raw) {{ paras[i].textObject.content = stripped + "\\r"; }}
+        }}
+        if (level === 3) {{
+            var stripped3 = raw.replace(/^\\(?[a-zğüşıöç]\\)[\\s\\t]*/, "");
+            if (stripped3 !== raw) {{ paras[i].textObject.content = stripped3 + "\\r"; }}
+        }}
+        var r = d.createRange({{start: paras[i].textObject.startOfContent(), end: paras[i].textObject.endOfContent()}});
+        r.listFormat.applyListFormatTemplate({{listTemplate: lt, continuePreviousList: (totalApplied > 0)}});
+        if (level > 1) r.listFormat.listLevelNumber = level;
+        if (level === 1 && firstH1 < 0) firstH1 = i;
+        counts[level]++;
+        totalApplied++;
+    }}
+}}
+{"" if not font_color else f"""
+var fc = {_color_to_mac_rgb(font_color)};
+for (var i = (firstH1 >= 0 ? firstH1 : 0); i < paras.length; i++) {{
+    try {{ paras[i].textObject.fontObject.color = fc; }} catch(e) {{}}
+}}
+"""}
+JSON.stringify({{applied: true, type: "multilevel", h1: counts[1], h2: counts[2], h3: counts[3]}});
+""", timeout=180)
+
+        elif heading_texts:
+            texts_json = json.dumps(heading_texts)
+            return _run_jxa(f"""
+var app = Application("Microsoft Word");
+{finder}
+var lt = app.make({{new: "listTemplate", at: d, withProperties: {{outlineNumbered: true}}}});
+{levels_js}
+var headingTexts = {texts_json};
+var headingSet = {{}};
+var norm = function(s) {{ return s.toUpperCase().replace(/[\\u2018\\u2019\\u201C\\u201D\\u0027]/g, "\\u0027"); }};
+for (var hi = 0; hi < headingTexts.length; hi++) headingSet[norm(headingTexts[hi])] = true;
+var paras = d.paragraphs();
+var h1Applied = 0;
+var h2Applied = 0;
+var subArticleRe = /^\\d{{1,2}}\\.\\d{{1,2}}[\\.\\s]/;
+var firstH1 = -1;
+for (var i = 0; i < paras.length; i++) {{
+    var raw = paras[i].textObject.content().replace(/[\\r\\n]/g, "");
+    var pText = norm(raw);
+    var matched = headingSet[pText];
+    if (!matched) {{ for (var key in headingSet) {{ if (pText.indexOf(key) === 0) {{ matched = true; pText = key; break; }} }} }}
+    if (matched) {{
+        var r = d.createRange({{start: paras[i].textObject.startOfContent(), end: paras[i].textObject.endOfContent()}});
+        r.listFormat.applyListFormatTemplate({{listTemplate: lt, continuePreviousList: (h1Applied > 0)}});
+        h1Applied++;
+        if (firstH1 < 0) firstH1 = i;
+        delete headingSet[pText];
+    }}
+}}
+for (var i = firstH1; i < paras.length; i++) {{
+    var raw = paras[i].textObject.content();
+    var clean = raw.replace(/[\\r\\n]/g, "");
+    if (subArticleRe.test(clean)) {{
+        var r = d.createRange({{start: paras[i].textObject.startOfContent(), end: paras[i].textObject.endOfContent()}});
+        r.listFormat.applyListFormatTemplate({{listTemplate: lt, continuePreviousList: true}});
+        r.listFormat.listLevelNumber = 2;
+        var stripped = clean.replace(/^\\d{{1,2}}\\.\\d{{1,2}}[\\.:]?[\\s\\t]*/, "");
+        if (stripped !== clean) {{ paras[i].textObject.content = stripped + "\\r"; }}
+        h2Applied++;
+    }}
+}}
+{"" if not font_color else f"""
+var fc = {_color_to_mac_rgb(font_color)};
+for (var i = firstH1; i < paras.length; i++) {{
+    try {{ paras[i].textObject.fontObject.color = fc; }} catch(e) {{}}
+}}
+"""}
+JSON.stringify({{applied: true, type: "multilevel", h1: h1Applied, h2: h2Applied}});
+""", timeout=180)
+        else:
+            para_indices_js = json.dumps([i - 1 for i in range(start_paragraph, ep + 1)])
+            if lm:
+                para_indices_js = json.dumps(sorted([int(k) - 1 for k in lm.keys()]))
+
+            return _run_jxa(f"""
+var app = Application("Microsoft Word");
+{finder}
+var lt = app.make({{new: "listTemplate", at: d, withProperties: {{outlineNumbered: true}}}});
+{levels_js}
+var paraIndices = {para_indices_js};
+var applied = 0;
+for (var pi = 0; pi < paraIndices.length; pi++) {{
+    var idx = paraIndices[pi];
+    if (idx >= 0 && idx < d.paragraphs.length) {{
+        var p = d.paragraphs[idx];
+        var r = d.createRange({{start: p.textObject.startOfContent(), end: p.textObject.endOfContent()}});
+        r.listFormat.applyListFormatTemplate({{listTemplate: lt, continuePreviousList: (pi > 0)}});
+        applied++;
+    }}
+}}
+JSON.stringify({{applied: true, type: "multilevel", count: applied}});
+""", timeout=120)
+
+    else:
+        gallery_idx = 0 if list_type == "bullet" else 1
+        return _run_jxa(f"""
+var app = Application("Microsoft Word");
+{finder}
+var gallery = app.listGalleries[{gallery_idx}];
+var lt = gallery.listTemplates[0];
+for (var i = {start_paragraph - 1}; i < {ep}; i++) {{
+    var p = d.paragraphs[i];
+    var r = d.createRange({{start: p.textObject.startOfContent(), end: p.textObject.endOfContent()}});
+    var shouldContinue = (i > {start_paragraph - 1}) || {"true" if continue_previous else "false"};
+    r.listFormat.applyListFormatTemplate({{listTemplate: lt, continuePreviousList: shouldContinue}});
+}}
+JSON.stringify({{applied: true, type: "{list_type}", count: {ep - start_paragraph + 1}}});
+""")
+
+
+def mac_setup_heading_numbering(
+    filename: str = None,
+    h1_paragraphs: list = None,
+    h2_paragraphs: list = None,
+    strip_manual_numbers: bool = True,
+    h1_number_format: str = None,
+    h2_number_format: str = None,
+    font_name: str = None,
+    h1_size: float = None,
+    h2_size: float = None,
+    bold: bool = None,
+    alignment: str = None,
+    font_color: str = None,
+    h1_space_before: float = None,
+    h1_space_after: float = None,
+    h2_space_before: float = None,
+    h2_space_after: float = None,
+    line_spacing: float = None,
+) -> str:
+    """Set up auto-numbered headings with multilevel list on Mac."""
+    import re
+
+    if not h1_paragraphs and not h2_paragraphs:
+        return json.dumps({"error": "Provide h1_paragraphs and/or h2_paragraphs"})
+
+    finder = _doc_finder_js(filename)
+    h1_fmt = _escape_js(h1_number_format or "%1.")
+    h2_fmt = _escape_js(h2_number_format or "%1.%2")
+
+    align_map = {"left": "align paragraph left", "center": "align paragraph center",
+                 "right": "align paragraph right", "justify": "align paragraph justify"}
+    align_val = f'"{align_map.get(alignment.lower())}"' if alignment else "null"
+
+    color_js = "null"
+    if font_color:
+        color_js = _color_to_mac_rgb(font_color)
+
+    h1_indices_js = json.dumps([i - 1 for i in (h1_paragraphs or [])])
+    h2_indices_js = json.dumps([i - 1 for i in (h2_paragraphs or [])])
+
+    result_raw = _run_jxa(f"""
+var app = Application("Microsoft Word");
+{finder}
+var paras = d.paragraphs();
+
+// --- Customize heading styles ---
+var fontName = {json.dumps(font_name)};
+var h1Size = {json.dumps(h1_size)};
+var h2Size = {json.dumps(h2_size)};
+var boldVal = {json.dumps(bold)};
+var alignVal = {align_val};
+var colorVal = {color_js};
+var h1SpBefore = {json.dumps(h1_space_before)};
+var h1SpAfter = {json.dumps(h1_space_after)};
+var h2SpBefore = {json.dumps(h2_space_before)};
+var h2SpAfter = {json.dumps(h2_space_after)};
+var lineSpacing = {json.dumps(line_spacing)};
+
+var ws = d.wordStyles;
+var h1Style = ws["heading 1"];
+var h2Style = ws["heading 2"];
+var sizes = [h1Size, h2Size];
+var spBefores = [h1SpBefore, h2SpBefore];
+var spAfters = [h1SpAfter, h2SpAfter];
+var styleObjs = [h1Style, h2Style];
+
+for (var si = 0; si < 2; si++) {{
+    var s = styleObjs[si];
+    if (fontName !== null) s.font.name = fontName;
+    if (sizes[si] !== null) s.font.size = sizes[si];
+    if (boldVal !== null) {{ s.font.bold = boldVal; s.font.italic = false; }}
+    if (colorVal !== null) s.font.color = colorVal;
+    if (alignVal !== null) s.paragraphFormat.alignment = alignVal;
+    if (spBefores[si] !== null) s.paragraphFormat.spaceBefore = spBefores[si];
+    if (spAfters[si] !== null) s.paragraphFormat.spaceAfter = spAfters[si];
+    if (lineSpacing !== null) {{
+        s.paragraphFormat.lineSpacingRule = "line spacing multiple";
+        s.paragraphFormat.lineSpacing = lineSpacing;
+    }}
+    s.paragraphFormat.keepWithNext = (si === 0);
+    s.paragraphFormat.keepTogether = false;
+}}
+
+// --- Create multilevel list template ---
+var lt = app.make({{new: "listTemplate", at: d, withProperties: {{outlineNumbered: true}}}});
+
+var lv1 = lt.listLevels[0];
+lv1.numberFormat = "{h1_fmt}";
+lv1.numberStyle = "{
+    'list number style upper case roman' if any(k in (h1_number_format or '').upper() for k in ['BÖLÜM', 'BOLUM', 'ROMAN'])
+    else 'list number style arabic'
+}";
+lv1.startAt = 1;
+lv1.numberPosition = 0;
+lv1.textPosition = {0 if len(h1_number_format or "") > 5 else 28};
+lv1.linkedStyle = "Normal";
+
+var lv2 = lt.listLevels[1];
+lv2.numberFormat = "{h2_fmt}";
+lv2.numberStyle = "list number style arabic";
+lv2.startAt = 1;
+lv2.numberPosition = 0;
+lv2.textPosition = {0 if len(h2_number_format or "") > 5 else 28};
+lv2.linkedStyle = "Normal";
+
+// --- Apply styles to paragraphs using wordStyles ---
+var h1Indices = {h1_indices_js};
+var h2Indices = {h2_indices_js};
+var h1Applied = 0;
+var h2Applied = 0;
+
+for (var i = 0; i < h1Indices.length; i++) {{
+    var idx = h1Indices[i];
+    if (idx >= 0 && idx < paras.length) {{
+        paras[idx].textObject.style = h1Style;
+        h1Applied++;
+    }}
+}}
+for (var i = 0; i < h2Indices.length; i++) {{
+    var idx = h2Indices[i];
+    if (idx >= 0 && idx < paras.length) {{
+        paras[idx].textObject.style = h2Style;
+        h2Applied++;
+    }}
+}}
+
+JSON.stringify({{h1_applied: h1Applied, h2_applied: h2Applied}});
+""", timeout=60)
+
+    result = json.loads(result_raw)
+
+    if strip_manual_numbers:
+        stripped = 0
+        all_indices = [(i - 1) for i in (h1_paragraphs or [])] + [(i - 1) for i in (h2_paragraphs or [])]
+        full_text = json.loads(mac_get_text(filename))
+        paragraphs = full_text.get("paragraphs", [])
+
+        for idx in all_indices:
+            if idx < 0 or idx >= len(paragraphs):
+                continue
+            text = paragraphs[idx].get("text", "")
+            cleaned = re.sub(r'^(MADDE\s+\d+\s*[–\-:]\s*|\d+(\.\d+)*\.?\s+)', '', text)
+            if cleaned != text:
+                mac_replace_text(
+                    filename=filename,
+                    find_text=text[:80].rstrip(),
+                    replace_text=cleaned[:80].rstrip(),
+                    match_case=True,
+                    replace_all=False,
+                )
+                stripped += 1
+
+        result["stripped"] = stripped
+
+    return json.dumps(result)
