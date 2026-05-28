@@ -1545,6 +1545,7 @@ def mac_setup_heading_numbering(
     filename: str = None,
     h1_paragraphs: list = None,
     h2_paragraphs: list = None,
+    heading_map: dict = None,
     strip_manual_numbers: bool = True,
     h1_number_format: str = None,
     h2_number_format: str = None,
@@ -1560,11 +1561,62 @@ def mac_setup_heading_numbering(
     h2_space_after: float = None,
     line_spacing: float = None,
 ) -> str:
-    """Set up auto-numbered headings with multilevel list on Mac."""
-    import re
+    """Set up auto-numbered headings with multilevel list on Mac.
+
+    heading_map: optional dict {heading_text: level (1 or 2)} — text-based
+    matching that's robust to index shifts. When provided, takes precedence
+    over h1_paragraphs/h2_paragraphs. Uses the same matching as mac_apply_list:
+    case-insensitive, apostrophe-normalized, with startsWith fallback.
+    """
+    import re as _re
+
+    if heading_map:
+        # Resolve heading_map -> h1_paragraphs / h2_paragraphs by text matching.
+        _quote_chars = [chr(0x2018), chr(0x2019), chr(0x201c), chr(0x201d), chr(0x22)]
+
+        def _norm(s: str) -> str:
+            s = s.upper()
+            for c in _quote_chars:
+                s = s.replace(c, "'")
+            return _re.sub(r"\s+", " ", s).strip()
+
+        norm_map = {_norm(k): int(v) for k, v in heading_map.items()}
+        paras_data = json.loads(mac_get_text(filename=filename)).get("paragraphs", [])
+        h1_paragraphs = []
+        h2_paragraphs = []
+        num_prefix_re = _re.compile(r"^\s*\d{1,2}\.\d{1,2}[\.:]?[\s\t]*")
+        for pdata in paras_data:
+            raw = (pdata.get("text") or "").replace("\r", "").replace("\n", "")
+            idx_1based = pdata.get("index", -1) + 1  # the function expects 1-indexed
+            if not raw:
+                continue
+            p_text = _norm(raw)
+            p_text_no_num = _norm(num_prefix_re.sub("", raw))
+            level = 0
+            matched_key = None
+            if p_text in norm_map:
+                level = norm_map[p_text]
+                matched_key = p_text
+            elif p_text_no_num != p_text and p_text_no_num in norm_map:
+                level = norm_map[p_text_no_num]
+                matched_key = p_text_no_num
+            else:
+                for key in list(norm_map.keys()):
+                    if p_text.startswith(key) or (
+                        p_text_no_num != p_text and p_text_no_num.startswith(key)
+                    ):
+                        level = norm_map[key]
+                        matched_key = key
+                        break
+            if level > 0 and matched_key:
+                del norm_map[matched_key]
+                if level == 1:
+                    h1_paragraphs.append(idx_1based)
+                elif level == 2:
+                    h2_paragraphs.append(idx_1based)
 
     if not h1_paragraphs and not h2_paragraphs:
-        return json.dumps({"error": "Provide h1_paragraphs and/or h2_paragraphs"})
+        return json.dumps({"error": "Provide h1_paragraphs and/or h2_paragraphs (or heading_map)"})
 
     finder = _doc_finder_js(filename)
     h1_fmt = _escape_js(h1_number_format or "%1.")
@@ -1636,7 +1688,9 @@ lv1.numberStyle = "{
 lv1.startAt = 1;
 lv1.numberPosition = 0;
 lv1.textPosition = {0 if len(h1_number_format or "") > 5 else 28};
-lv1.linkedStyle = "Normal";
+// Link Level 1 to Heading 1 so paragraphs styled Heading 1 auto-number.
+// Don't link to Normal — that pollutes every Normal-styled paragraph.
+try {{ lv1.linkedStyle = "heading 1"; }} catch(e1) {{}}
 
 var lv2 = lt.listLevels[1];
 lv2.numberFormat = "{h2_fmt}";
@@ -1644,7 +1698,8 @@ lv2.numberStyle = "list number style arabic";
 lv2.startAt = 1;
 lv2.numberPosition = 0;
 lv2.textPosition = {0 if len(h2_number_format or "") > 5 else 28};
-lv2.linkedStyle = "Normal";
+try {{ lv2.linkedStyle = "heading 2"; }} catch(e2) {{}}
+try {{ lv2.restartAfter = 1; }} catch(e3) {{}}
 
 // --- Apply styles to paragraphs using wordStyles ---
 var h1Indices = {h1_indices_js};

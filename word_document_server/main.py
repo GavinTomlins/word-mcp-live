@@ -1145,6 +1145,7 @@ def register_tools():
         filename: str = None,
         h1_paragraphs: list = None,
         h2_paragraphs: list = None,
+        heading_map: dict = None,
         strip_manual_numbers: bool = True,
         h1_number_format: str = None,
         h2_number_format: str = None,
@@ -1161,7 +1162,8 @@ def register_tools():
         line_spacing: float = None,
     ):
         return live_tools.word_live_setup_heading_numbering(
-            filename, h1_paragraphs, h2_paragraphs, strip_manual_numbers,
+            filename, h1_paragraphs, h2_paragraphs, heading_map,
+            strip_manual_numbers,
             h1_number_format, h2_number_format,
             font_name, h1_size, h2_size, bold, alignment, font_color,
             h1_space_before, h1_space_after, h2_space_before, h2_space_after,
