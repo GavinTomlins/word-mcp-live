@@ -342,6 +342,7 @@ async def word_live_apply_list(
     level_map: dict = None,
     track_changes: bool = False,
     font_color: str = None,
+    outline_numbered: bool = True,
 ) -> str:
     """[Windows only] Apply or remove bullet/numbered/multilevel list formatting on paragraphs.
 
@@ -389,7 +390,7 @@ async def word_live_apply_list(
             remove=remove, continue_previous=continue_previous,
             number_format=number_format, number_style=number_style,
             start_at=start_at, level_map=level_map, track_changes=track_changes,
-            font_color=font_color,
+            font_color=font_color, outline_numbered=outline_numbered,
         )
 
     if sys.platform != "win32":

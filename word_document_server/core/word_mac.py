@@ -1193,8 +1193,16 @@ def mac_apply_list(
     level_map: dict = None,
     track_changes: bool = False,
     font_color: str = None,
+    outline_numbered: bool = True,
 ) -> str:
-    """Apply list formatting to paragraphs on Mac using AppleScript."""
+    """Apply list formatting to paragraphs on Mac using AppleScript.
+
+    outline_numbered: when False, the list template is created without the
+    outline-numbered flag. Use this for non-cascading per-section lists like
+    (a)/(b)/(c) under MADDE 11/13/17/18 — outline-numbered templates would
+    displace the document's single active outline list (Heading 1/MADDE).
+    """
+    _outline_js = "true" if outline_numbered else "false"
     if start_paragraph is None:
         return json.dumps({"error": "start_paragraph required"})
     ep = end_paragraph or start_paragraph
@@ -1420,7 +1428,7 @@ for (var ci = 0; ci < indices.length; ci++) {{
             return _run_jxa(f"""
 var app = Application("Microsoft Word");
 {finder}
-var lt = app.make({{new: "listTemplate", at: d, withProperties: {{outlineNumbered: true}}}});
+var lt = app.make({{new: "listTemplate", at: d, withProperties: {{outlineNumbered: {_outline_js}}}}});
 {levels_js}
 var indices = {indices_levels_json};
 var contentChanges = {content_changes_json};
@@ -1456,7 +1464,7 @@ JSON.stringify({{applied: true, type: "multilevel", h1: counts[1], h2: counts[2]
             return _run_jxa(f"""
 var app = Application("Microsoft Word");
 {finder}
-var lt = app.make({{new: "listTemplate", at: d, withProperties: {{outlineNumbered: true}}}});
+var lt = app.make({{new: "listTemplate", at: d, withProperties: {{outlineNumbered: {_outline_js}}}}});
 {levels_js}
 var headingTexts = {texts_json};
 var headingSet = {{}};
@@ -1508,7 +1516,7 @@ JSON.stringify({{applied: true, type: "multilevel", h1: h1Applied, h2: h2Applied
             return _run_jxa(f"""
 var app = Application("Microsoft Word");
 {finder}
-var lt = app.make({{new: "listTemplate", at: d, withProperties: {{outlineNumbered: true}}}});
+var lt = app.make({{new: "listTemplate", at: d, withProperties: {{outlineNumbered: {_outline_js}}}}});
 {levels_js}
 var paraIndices = {para_indices_js};
 var applied = 0;
@@ -1723,7 +1731,7 @@ for (var i = 0; i < h2Indices.length; i++) {{
 }}
 
 JSON.stringify({{h1_applied: h1Applied, h2_applied: h2Applied}});
-""", timeout=60)
+""", timeout=600)
 
     result = json.loads(result_raw)
 
