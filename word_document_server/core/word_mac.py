@@ -1709,16 +1709,25 @@ lv2.textPosition = {0 if len(h2_number_format or "") > 5 else 28};
 try {{ lv2.linkedStyle = "heading 2"; }} catch(e2) {{}}
 try {{ lv2.restartAfter = 1; }} catch(e3) {{}}
 
-// --- Apply styles to paragraphs using wordStyles ---
+// --- Apply styles AND list template to each paragraph ---
+// linkedStyle assignment is unreliable on Mac JXA; explicitly apply the
+// list template to each heading paragraph so they get the configured
+// "MADDE %1 –" / "%1.%2." format. continuePreviousList:true on every
+// paragraph after the first chains them into one outline.
 var h1Indices = {h1_indices_js};
 var h2Indices = {h2_indices_js};
 var h1Applied = 0;
 var h2Applied = 0;
+var firstHeading = null;
 
 for (var i = 0; i < h1Indices.length; i++) {{
     var idx = h1Indices[i];
     if (idx >= 0 && idx < paras.length) {{
         paras[idx].textObject.style = h1Style;
+        var p = paras[idx];
+        var r = d.createRange({{start: p.textObject.startOfContent(), end: p.textObject.endOfContent()}});
+        r.listFormat.applyListFormatTemplate({{listTemplate: lt, continuePreviousList: (firstHeading !== null)}});
+        if (firstHeading === null) firstHeading = idx;
         h1Applied++;
     }}
 }}
@@ -1726,6 +1735,10 @@ for (var i = 0; i < h2Indices.length; i++) {{
     var idx = h2Indices[i];
     if (idx >= 0 && idx < paras.length) {{
         paras[idx].textObject.style = h2Style;
+        var p2 = paras[idx];
+        var r2 = d.createRange({{start: p2.textObject.startOfContent(), end: p2.textObject.endOfContent()}});
+        r2.listFormat.applyListFormatTemplate({{listTemplate: lt, continuePreviousList: true}});
+        r2.listFormat.listLevelNumber = 2;
         h2Applied++;
     }}
 }}
