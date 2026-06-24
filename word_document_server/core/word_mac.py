@@ -1166,8 +1166,15 @@ JSON.stringify({{deleted: true, rows: t.rows.length}});
 # ── Screen Capture ───────────────────────────────────────────────────────
 
 
-def mac_screen_capture(filename: str = None, output_path: str = "/tmp/word_capture.png") -> str:
+def mac_screen_capture(filename: str = None, output_path: str = None) -> str:
     """Capture the Word window on macOS."""
+    import tempfile
+
+    # Generate a unique temp path if none provided
+    if not output_path:
+        fd, output_path = tempfile.mkstemp(suffix=".png")
+        os.close(fd)
+
     # Activate Word
     _run_jxa("""
 var app = Application("Microsoft Word");
@@ -1178,6 +1185,7 @@ app.activate();
     time.sleep(0.5)
 
     # Use screencapture with the frontmost window
+    fallback_used = False
     result = subprocess.run(
         ["screencapture", "-x", "-o", "-w", output_path],
         capture_output=True,
@@ -1186,6 +1194,7 @@ app.activate();
     )
     if result.returncode != 0:
         # Fallback to full screen capture
+        fallback_used = True
         subprocess.run(
             ["screencapture", "-x", output_path],
             capture_output=True,
@@ -1195,7 +1204,27 @@ app.activate();
 
     if os.path.exists(output_path):
         size = os.path.getsize(output_path)
-        return json.dumps({"captured": True, "path": output_path, "size": size})
+        result_data = {
+            "captured": True,
+            "path": output_path,
+            "size": size,
+        }
+        if fallback_used:
+            result_data["warning"] = (
+                "窗口截图失败，已使用全屏截图回退。"
+                "截图可能包含 Word 窗口之外的其他内容，请注意检查。"
+            )
+            result_data["user_guidance"] = (
+                "由于无法精确捕获 Word 窗口，系统执行了全屏截图。"
+                "如果截图中包含非预期的内容，请重新尝试。"
+            )
+        else:
+            result_data["user_guidance"] = (
+                "已截取 Word 窗口截图。截图文件保存在 "
+                + output_path
+                + "。如果文件包含敏感信息，请注意妥善保管。"
+            )
+        return json.dumps(result_data)
     return json.dumps({"error": "Screen capture failed"})
 
 
@@ -1277,10 +1306,15 @@ JSON.stringify({{removed: true, count: bodyCount}});
                 "        n = n + 1",
                 "    Next",
                 "Next",
-                "Dim fileNum As Integer: fileNum = FreeFile",
-                'Open "/tmp/_word_hf_cleared.txt" For Output As #fileNum',
-                "Print #fileNum, CStr(n)",
-                "Close #fileNum",
+                # Use a temporary file with a unique name instead of a
+                # hardcoded /tmp/ path (race-condition / symlink risk).
+                _hf_fd, _hf_path = tempfile.mkstemp(suffix="_hf_cleared.txt")
+                os.close(_hf_fd)
+                vba_lines.append(
+                    f'Open "{_hf_path}" For Output As #fileNum'
+                )
+                vba_lines.append("Print #fileNum, CStr(n)")
+                vba_lines.append("Close #fileNum")
             ]
             # Build a single-line VBA program (do Visual Basic accepts colon
             # separators between statements). Then escape every literal " as ""
@@ -1294,11 +1328,16 @@ JSON.stringify({{removed: true, count: bodyCount}});
             )
             _run_applescript(applescript, timeout=30)
             try:
-                with open("/tmp/_word_hf_cleared.txt") as f:
+                with open(_hf_path) as f:
                     hf_cleared = int(f.read().strip())
-                os.remove("/tmp/_word_hf_cleared.txt")
+                os.unlink(_hf_path)
             except Exception:
                 hf_cleared = -1
+                if os.path.exists(_hf_path):
+                    try:
+                        os.unlink(_hf_path)
+                    except Exception:
+                        pass
         except Exception as e:
             hf_cleared = 0
             body_data["headerFooterError"] = str(e)[:200]

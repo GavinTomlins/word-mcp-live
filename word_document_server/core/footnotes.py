@@ -448,7 +448,8 @@ def add_footnote_robust(
         document_rels_xml = _ensure_document_rels(doc_parts['document_rels'])
         
         # Write modified document
-        temp_file = working_file + '.tmp'
+        fd, temp_file = tempfile.mkstemp(suffix='.docx')
+        os.close(fd)
         with zipfile.ZipFile(temp_file, 'w', zipfile.ZIP_DEFLATED) as zout:
             with zipfile.ZipFile(filename, 'r') as zin:
                 # Copy unchanged files
@@ -483,7 +484,8 @@ def add_footnote_robust(
         
     except Exception as e:
         # Clean up temp file if exists
-        temp_file = working_file + '.tmp'
+        fd, temp_file = tempfile.mkstemp(suffix='.docx')
+        os.close(fd)
         if os.path.exists(temp_file):
             os.remove(temp_file)
         return False, f"Error adding footnote: {str(e)}", None
@@ -578,7 +580,8 @@ def delete_footnote_robust(
                     orphans_removed.append(fn_id)
         
         # Write modified document
-        temp_file = working_file + '.tmp'
+        fd, temp_file = tempfile.mkstemp(suffix='.docx')
+        os.close(fd)
         with zipfile.ZipFile(temp_file, 'w', zipfile.ZIP_DEFLATED) as zout:
             with zipfile.ZipFile(filename, 'r') as zin:
                 for item in zin.infolist():

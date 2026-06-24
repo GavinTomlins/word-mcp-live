@@ -95,26 +95,32 @@ async def get_document_outline(filename: str) -> str:
 
 async def list_available_documents(directory: str = ".") -> str:
     """List all .docx files in the specified directory.
-    
+
     Args:
         directory: Directory to search for Word documents
     """
     try:
-        if not os.path.exists(directory):
-            return f"Directory {directory} does not exist"
-        
-        docx_files = [f for f in os.listdir(directory) if f.endswith('.docx')]
-        
+        from word_document_server.utils.path_safety import validate_path
+
+        safe_dir = validate_path(directory)
+
+        if not os.path.isdir(safe_dir):
+            return f"Directory {safe_dir} does not exist"
+
+        docx_files = [f for f in os.listdir(safe_dir) if f.endswith('.docx')]
+
         if not docx_files:
-            return f"No Word documents found in {directory}"
-        
-        result = f"Found {len(docx_files)} Word documents in {directory}:\n"
+            return f"No Word documents found in {safe_dir}"
+
+        result = f"Found {len(docx_files)} Word documents in {safe_dir}:\n"
         for file in docx_files:
-            file_path = os.path.join(directory, file)
+            file_path = os.path.join(safe_dir, file)
             size = os.path.getsize(file_path) / 1024  # KB
             result += f"- {file} ({size:.2f} KB)\n"
-        
+
         return result
+    except ValueError as e:
+        return str(e)
     except Exception as e:
         return f"Failed to list documents: {str(e)}"
 

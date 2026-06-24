@@ -1,8 +1,12 @@
 """Screen capture tool for Microsoft Word documents via COM + Win32 API."""
 
+import io
 import json
 import os
 import sys
+import tempfile
+
+from PIL import Image
 
 _MAC_AVAILABLE = sys.platform == 'darwin'
 
@@ -97,18 +101,16 @@ async def word_screen_capture(filename: str = None, output_path: str = None) -> 
         png_bytes = _capture_window_to_png(hwnd)
 
         if not output_path:
-            temp_dir = os.path.join(
-                os.environ.get("TEMP", "/tmp"), "word_mcp_captures"
+            tmpdir = os.path.join(
+                os.environ.get("TEMP", tempfile.gettempdir()),
+                "word_mcp_captures",
             )
-            os.makedirs(temp_dir, exist_ok=True)
-            safe_name = doc.Name.replace(".docx", "").replace(".doc", "")
-            output_path = os.path.join(temp_dir, f"word_capture_{safe_name}.png")
+            os.makedirs(tmpdir, exist_ok=True)
+            fd, output_path = tempfile.mkstemp(suffix=".png", dir=tmpdir)
+            os.close(fd)
 
         with open(output_path, "wb") as f:
             f.write(png_bytes)
-
-        from PIL import Image
-        import io
 
         img = Image.open(io.BytesIO(png_bytes))
 
@@ -119,6 +121,11 @@ async def word_screen_capture(filename: str = None, output_path: str = None) -> 
                 "width": img.width,
                 "height": img.height,
                 "document": doc.Name,
+                "user_guidance": (
+                    "已截取 Word 窗口截图。截图文件保存在 "
+                    + output_path
+                    + "。如果文件包含敏感信息，请注意妥善保管。"
+                ),
             }
         )
 

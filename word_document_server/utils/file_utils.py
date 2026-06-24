@@ -88,15 +88,14 @@ def create_document_copy(source_path: str, dest_path: Optional[str] = None) -> T
 
 
 def ensure_docx_extension(filename: str) -> str:
+    """Ensure filename has .docx extension and validate path safety.
+
+    Calls ``validate_path`` from *path_safety.py* so callers get
+    automatic protection against path traversal and the optional
+    ``MCP_ALLOWED_DIR`` sandbox.
     """
-    Ensure filename has .docx extension.
-    
-    Args:
-        filename: The filename to check
-        
-    Returns:
-        Filename with .docx extension
-    """
+    from word_document_server.utils.path_safety import validate_path
+    filename = validate_path(str(filename))
     if not filename.endswith('.docx'):
-        return filename + '.docx'
+        filename += '.docx'
     return filename
