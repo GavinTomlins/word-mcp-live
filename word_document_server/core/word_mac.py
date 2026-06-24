@@ -64,8 +64,23 @@ def _run_applescript(script: str, timeout: int = 30) -> str:
 
 
 def _escape_as(s: str) -> str:
-    """Escape a Python string for safe embedding in AppleScript."""
-    return s.replace("\\", "\\\\").replace('"', '\\"')
+    """Escape a Python string for safe embedding in AppleScript string literal.
+
+    AppleScript string literals (delimited by ``"``) treat backslash and
+    double-quote specially.  Newlines and carriage returns embedded in
+    the source would break the script because AppleScript uses line
+    endings as statement terminators.
+    """
+    s = s.replace("\\", "\\\\")
+    s = s.replace('"', '\\"')
+    s = s.replace("\n", "\\n")
+    s = s.replace("\r", "\\r")
+    s = s.replace("\t", "\\t")
+    # Remove null bytes and Unicode line/paragraph separators
+    s = s.replace("\x00", "")
+    s = s.replace(" ", "")
+    s = s.replace(" ", "")
+    return s
 
 
 def _color_to_word_int(hex_color: str) -> int:
@@ -729,7 +744,12 @@ def mac_add_comment(
 ) -> str:
     """Add a comment to a text range."""
     finder = _doc_finder_js(filename)
-    escaped_text = _escape_js(text)
+
+    # Validate that range parameters are numeric before embedding in script
+    for _name, _val in [("start", start), ("end", end),
+                        ("paragraph_index", paragraph_index)]:
+        if _val is not None and not isinstance(_val, int):
+            return json.dumps({"error": f"{_name} must be an integer"})
 
     if start is not None and end is not None:
         range_js = f"var r = d.createRange({{start: {start}, end: {end}}});"

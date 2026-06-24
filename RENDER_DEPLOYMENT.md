@@ -14,7 +14,7 @@ Set the following environment variables in your Render service:
 ### `MCP_HOST`
 - **Value**: `0.0.0.0`
 - **Description**: Binds the server to all network interfaces
-- **Required**: No (defaults to 0.0.0.0)
+- **Required**: Yes for Render — the default is `127.0.0.1` (localhost) but Render needs `0.0.0.0` to accept incoming connections
 
 ### `FASTMCP_LOG_LEVEL`
 - **Value**: `INFO`
@@ -55,5 +55,5 @@ The FastMCP server with SSE transport automatically provides a health check endp
 
 ### Cannot connect to server
 - **Cause**: Health checks failing
-- **Fix**: Ensure SSE transport is enabled and server is listening on 0.0.0.0
+- **Fix**: Ensure SSE transport is enabled (`MCP_TRANSPORT=sse`) and set `MCP_HOST=0.0.0.0` to accept external connections
 

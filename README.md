@@ -250,7 +250,7 @@ Live tools now work on macOS via JavaScript for Automation (JXA). Same tool name
 | `MCP_AUTHOR` | `"Author"` | Author name for tracked changes and comments |
 | `MCP_AUTHOR_INITIALS` | `""` | Author initials for comments |
 | `MCP_TRANSPORT` | `stdio` | Transport type: `stdio`, `sse`, or `streamable-http` |
-| `MCP_HOST` | `0.0.0.0` | Host to bind (for SSE/HTTP transports) |
+| `MCP_HOST` | `127.0.0.1` | Host to bind (for SSE/HTTP transports; use `0.0.0.0` for remote access) |
 | `MCP_PORT` | `8000` | Port to bind (for SSE/HTTP transports) |
 
 For remote deployment, see [RENDER_DEPLOYMENT.md](RENDER_DEPLOYMENT.md).

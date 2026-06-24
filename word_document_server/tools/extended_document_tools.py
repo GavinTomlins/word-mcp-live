@@ -8,6 +8,7 @@ import json
 import subprocess
 import platform
 import shutil
+import tempfile
 from typing import Dict, List, Optional, Any, Union, Tuple
 from docx import Document
 
@@ -105,12 +106,21 @@ async def convert_to_pdf(filename: str, output_filename: Optional[str] = None) -
     # Convert to absolute path if not already
     if not os.path.isabs(output_filename):
         output_filename = os.path.abspath(output_filename)
-    
+
+    # Safety: reject path traversal and null bytes in input/output paths
+    for _path, _label in [(filename, "input"), (output_filename, "output")]:
+        if "\x00" in _path:
+            return f"拒绝{_label}路径：路径包含空字符。"
+        normalized = os.path.normpath(_path)
+        # Block explicit or embedded parent-dir traversal
+        if ".." in normalized.replace("\\", "/").split("/"):
+            return f"拒绝{_label}路径：路径包含 '..' 遍历。"
+
     # Ensure the output directory exists
     output_dir = os.path.dirname(output_filename)
     if not output_dir:
         output_dir = os.path.abspath('.')
-    
+
     # Create the directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
     
@@ -160,6 +170,23 @@ async def convert_to_pdf(filename: str, output_filename: Optional[str] = None) -
                     try:
                         output_dir_for_lo = os.path.dirname(output_filename) or '.'
                         os.makedirs(output_dir_for_lo, exist_ok=True)
+
+                        # Safety: restrict PDF output to allowed directories
+                        _abs_dir = os.path.abspath(output_dir_for_lo)
+                        _allowed_bases = [
+                            os.path.abspath('.'),
+                            os.path.abspath(os.path.dirname(filename)),
+                            tempfile.gettempdir(),
+                        ]
+                        _in_allowed = any(
+                            _abs_dir == _base
+                            or _abs_dir.startswith(_base + os.sep)
+                            for _base in _allowed_bases
+                        )
+                        if not _in_allowed:
+                            raise RuntimeError(
+                                f"拒绝将 PDF 写入 {_abs_dir}：路径不在允许范围内。"
+                            )
 
                         cmd = [cmd_name, '--headless', '--convert-to', 'pdf', '--outdir', output_dir_for_lo, filename]
                         result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=False)
