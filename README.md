@@ -57,6 +57,10 @@ https://github.com/user-attachments/assets/fbb09af4-1e25-4e49-94d0-45b363278810
 - **Layout diagnostics** — Detects formatting problems before they become print disasters.
 - **Equations & cross-references** — Insert math formulas and auto-updating references.
 - **124 tools** — The most comprehensive Word MCP server available.
+- **Automatic backups** — Periodic backup every 5 minutes + on-demand backup before destructive operations. Stored in `_backup/` folder, max 5 copies kept.
+- **Path sandbox** — Optional `MCP_ALLOWED_DIR` restricts file access to a single directory tree.
+- **COM timeout protection** — Long-running COM operations (replace, save, etc.) have configurable timeouts to prevent server hang on remote/unstable Word connections.
+- **Security-hardened** — All 10 audit findings from the initial security review have been addressed (fake signatures removed, AppleScript injection fixed, path traversal prevented, predictable temp files eliminated, and more).
 
 ## Quick Start
 
@@ -252,6 +256,8 @@ Live tools now work on macOS via JavaScript for Automation (JXA). Same tool name
 | `MCP_TRANSPORT` | `stdio` | Transport type: `stdio`, `sse`, or `streamable-http` |
 | `MCP_HOST` | `127.0.0.1` | Host to bind (for SSE/HTTP transports; use `0.0.0.0` for remote access) |
 | `MCP_PORT` | `8000` | Port to bind (for SSE/HTTP transports) |
+| `MCP_ALLOWED_DIR` | *(none)* | Restrict file access to this directory and its subdirectories (path sandbox) |
+| `MCP_MAX_BACKUPS` | `5` | Max automatic backups to keep per document; set to `0` for unlimited |
 
 For remote deployment, see [RENDER_DEPLOYMENT.md](RENDER_DEPLOYMENT.md).
 
