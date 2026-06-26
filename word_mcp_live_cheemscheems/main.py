@@ -2065,8 +2065,6 @@ def run_server():
             )
             app = mcp.http_app(
                 transport='streamable-http',
-                host=config['host'],
-                port=config['port'],
                 path=config['path'],
                 middleware=middleware,
             )
@@ -2078,22 +2076,20 @@ def run_server():
             )
             app = mcp.http_app(
                 transport='sse',
-                host=config['host'],
-                port=config['port'],
                 path=config['sse_path'],
                 middleware=middleware,
             )
 
         import uvicorn
         uvicorn.run(app, host=config['host'], port=config['port'])
+
             
     except KeyboardInterrupt:
         print("\nShutting down server...", file=sys.stderr)
     except Exception as e:
         print(f"Error starting server: {e}", file=sys.stderr)
-        if config['debug']:
-            import traceback
-            traceback.print_exc()
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
     
     return mcp
