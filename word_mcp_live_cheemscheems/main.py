@@ -2007,26 +2007,59 @@ def run_server():
             # Run with stdio transport (default, backward compatible)
             print("Server running on stdio transport", file=sys.stderr)
             mcp.run(transport='stdio')
-            
-        elif transport_type == 'streamable-http':
-            # Run with streamable HTTP transport
-            print(f"Server running on streamable-http transport at http://{config['host']}:{config['port']}{config['path']}", file=sys.stderr)
-            mcp.run(
+            return mcp
+
+        # ── HTTP/SSE transport: build Starlette app with auth middleware ──
+        from starlette.middleware import Middleware
+        from word_mcp_live_cheemscheems.core.auth import (
+            BearerTokenMiddleware,
+            is_auth_enabled,
+        )
+
+        if not is_auth_enabled():
+            print(
+                "Warning: WORD_MCP_LIVE_API_KEY is not set. "
+                "HTTP/SSE transport has no authentication.",
+                file=sys.stderr,
+            )
+            print(
+                "  Set WORD_MCP_LIVE_API_KEY in .env or as environment variable.",
+                file=sys.stderr,
+            )
+
+        middleware: list[Middleware] = []
+        if is_auth_enabled():
+            middleware.append(Middleware(BearerTokenMiddleware))
+
+        if transport_type == 'streamable-http':
+            print(
+                f"Server running on streamable-http transport "
+                f"at http://{config['host']}:{config['port']}{config['path']}",
+                file=sys.stderr,
+            )
+            app = mcp.http_app(
                 transport='streamable-http',
                 host=config['host'],
                 port=config['port'],
-                path=config['path']
+                path=config['path'],
+                middleware=middleware,
             )
-            
-        elif transport_type == 'sse':
-            # Run with SSE transport
-            print(f"Server running on SSE transport at http://{config['host']}:{config['port']}{config['sse_path']}", file=sys.stderr)
-            mcp.run(
+        else:  # sse
+            print(
+                f"Server running on SSE transport "
+                f"at http://{config['host']}:{config['port']}{config['sse_path']}",
+                file=sys.stderr,
+            )
+            app = mcp.http_app(
                 transport='sse',
                 host=config['host'],
                 port=config['port'],
-                path=config['sse_path']
+                path=config['sse_path'],
+                middleware=middleware,
             )
+
+        import uvicorn
+        uvicorn.run(app, host=config['host'], port=config['port'])
             
     except KeyboardInterrupt:
         print("\nShutting down server...", file=sys.stderr)

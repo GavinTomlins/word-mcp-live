@@ -120,6 +120,7 @@ pip install -e .
 | `MCP_PORT` | `8000` | 绑定端口（SSE/HTTP 传输） |
 | `MCP_ALLOWED_DIR` | *(无)* | 路径沙箱：限制文件访问到此目录及其子目录 |
 | `MCP_MAX_BACKUPS` | `5` | 每个文档的最大自动备份数，设为 `0` 表示不限制 |
+| `WORD_MCP_LIVE_API_KEY` | *(无)* | HTTP/SSE 传输的 Bearer Token 鉴权。设置后需在请求头中提供此密钥 |
 
 ## 安全改进
 

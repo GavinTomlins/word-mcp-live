@@ -258,6 +258,7 @@ Live tools now work on macOS via JavaScript for Automation (JXA). Same tool name
 | `MCP_PORT` | `8000` | Port to bind (for SSE/HTTP transports) |
 | `MCP_ALLOWED_DIR` | *(none)* | Restrict file access to this directory and its subdirectories (path sandbox) |
 | `MCP_MAX_BACKUPS` | `5` | Max automatic backups to keep per document; set to `0` for unlimited |
+| `WORD_MCP_LIVE_API_KEY` | *(none)* | Bearer token for HTTP/SSE transport auth. Set to a secret value to require authentication |
 
 For remote deployment, see [RENDER_DEPLOYMENT.md](RENDER_DEPLOYMENT.md).
 
