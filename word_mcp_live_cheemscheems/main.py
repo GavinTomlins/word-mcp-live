@@ -94,7 +94,16 @@ def setup_logging(debug_mode):
 
 
 # Initialize FastMCP server
-mcp = FastMCP("Word Document Server")
+mcp = FastMCP(
+    "Word Document Server",
+    description=(
+        "Microsoft Word document editing via MCP. Two modes:\\n"
+        "1. Cross-platform tools (no prefix): require the .docx file to be CLOSED in Word.\\n"
+        "2. Live editing tools (prefix \"word_live_\"): require the file to be OPEN in Word.\\n"
+        "If a cross-platform tool fails with a file lock error, switch to the \\n"
+        "corresponding word_live_* tool instead."
+    ),
+)
 
 
 def register_tools():
@@ -139,6 +148,9 @@ def register_tools():
     )
     def get_document_text(filename: str, show_revisions: bool = False):
         """Extract all text from a Word document.
+
+        [cross-platform mode] Requires the .docx file to be CLOSED in Word.
+        If the file is open in Word, use word_live_get_text instead.
 
         By default returns the effective final text (insertions applied,
         deletions removed).  Set show_revisions=True to get inline redline
@@ -238,6 +250,9 @@ def register_tools():
                       bold: bool = None, italic: bool = None, color: str = None):
         """Add a paragraph to a Word document with optional formatting.
 
+        [cross-platform mode] Requires the .docx file to be CLOSED in Word.
+        If the file is open in Word, use word_live_insert_paragraphs instead.
+
         Args:
             filename: Path to Word document
             text: Paragraph text content
@@ -293,7 +308,11 @@ def register_tools():
         ),
     )
     def add_table(filename: str, rows: int, cols: int, data: list[list[str]] = None):
-        """Add a table to a Word document."""
+        """Add a table to a Word document.
+
+        [cross-platform mode] Requires the .docx file to be CLOSED in Word.
+        If the file is open in Word, use word_live_add_table instead.
+        NOTE: data must be a list of lists (2D array), not a list of strings."""
         return content_tools.add_table(filename, rows, cols, data)
     
     @mcp.tool(
@@ -324,7 +343,10 @@ def register_tools():
         ),
     )
     def search_and_replace(filename: str, find_text: str, replace_text: str):
-        """Search for text and replace all occurrences."""
+        """Search for text and replace all occurrences.
+
+        [cross-platform mode] Requires the .docx file to be CLOSED in Word.
+        If the file is open in Word, use word_live_replace_text instead."""
         return content_tools.search_and_replace(filename, find_text, replace_text)
     
     # Format tools (styling, text formatting, etc.)
@@ -742,6 +764,10 @@ def register_tools():
     def add_comment(filename: str, target_text: str, comment_text: str,
                     author: str = DEFAULT_AUTHOR, initials: str = DEFAULT_INITIALS):
         """Add a comment to a Word document anchored to specific text.
+
+        [cross-platform mode] Requires the .docx file to be CLOSED in Word.
+        If the file is open in Word, use word_live_add_comment instead.
+
         The comment will appear in Word's Review panel attached to the target text.
 
         Args:
@@ -1045,10 +1071,10 @@ def register_tools():
         autofit: str = "window",
         track_changes: bool = False,
     ):
-        """[Windows only] Add a table to a Word document open in Word.
+        """[live editing mode] Add a table to a document currently OPEN in Word.
+        Use this when add_table fails due to file lock.
         Optionally provide data as 2D list. Default style is 'Table Grid' with
-        autofit to window width. Set style=None for no style, autofit=None for
-        legacy fixed behavior. Requires Word running."""
+        autofit to window width. Requires Word running."""
         return live_tools.word_live_add_table(
             filename, rows, cols, position, data, style, autofit, track_changes
         )
