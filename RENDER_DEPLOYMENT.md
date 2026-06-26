@@ -16,6 +16,11 @@ Set the following environment variables in your Render service:
 - **Description**: Binds the server to all network interfaces
 - **Required**: Yes for Render — the default is `127.0.0.1` (localhost) but Render needs `0.0.0.0` to accept incoming connections
 
+### `WORD_MCP_LIVE_API_KEY`
+- **Value**: *(your secret key)*
+- **Description**: Bearer token for authentication. **Required** — the server will refuse to start without it
+- **Required**: Yes (required for HTTP/SSE transport in Render)
+
 ### `FASTMCP_LOG_LEVEL`
 - **Value**: `INFO`
 - **Description**: Sets the logging level for FastMCP
