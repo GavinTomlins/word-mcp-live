@@ -6,7 +6,9 @@ import os
 import sys
 import tempfile
 
-from PIL import Image
+# PIL is only needed on the Windows capture path and is a win32-only
+# dependency — import it inside the functions that use it so the module
+# stays importable on macOS/Linux.
 
 _MAC_AVAILABLE = sys.platform == 'darwin'
 
@@ -86,6 +88,8 @@ async def word_screen_capture(filename: str = None, output_path: str = None) -> 
         return json.dumps({"error": "Screen capture is only available on Windows"})
 
     try:
+        from PIL import Image
+
         from word_mcp_live_cheemscheems.core.word_com import get_word_app, find_document
 
         app = get_word_app()
