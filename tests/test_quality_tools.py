@@ -8,10 +8,10 @@ from pathlib import Path
 from docx import Document
 from docx.shared import Inches
 
-from word_mcp_live_cheemscheems.core.markdown_write import markdown_to_document
-from word_mcp_live_cheemscheems.core.markdown_read import document_to_markdown
-from word_mcp_live_cheemscheems.core.validation import validate_docx
-from word_mcp_live_cheemscheems.tools import quality_tools
+from word_mcp_live_gavintomlins.core.markdown_write import markdown_to_document
+from word_mcp_live_gavintomlins.core.markdown_read import document_to_markdown
+from word_mcp_live_gavintomlins.core.validation import validate_docx
+from word_mcp_live_gavintomlins.tools import quality_tools
 
 SAMPLE_MARKDOWN = """\
 # Quarterly Report
@@ -88,7 +88,7 @@ def test_validation_rejects_non_docx(tmp_path: Path):
 
 
 def test_revision_markup_in_markdown(tmp_path: Path):
-    from word_mcp_live_cheemscheems.tools.tracked_changes_tools import track_replace
+    from word_mcp_live_gavintomlins.tools.tracked_changes_tools import track_replace
 
     path = str(tmp_path / "tracked.docx")
     markdown_to_document("Original wording stays here.", path)

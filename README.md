@@ -24,7 +24,7 @@ The server core was rebuilt on FastMCP 3.x (full details in the [CHANGELOG](CHAN
 - **Typed configuration** — new `WORD_MCP_*` environment variables (pydantic-settings); all legacy names (`MCP_TRANSPORT`, `WORD_MCP_LIVE_API_KEY`, `MCP_AUTHOR`, …) keep working as aliases, so existing configs need no changes.
 - **Streamable HTTP** — `WORD_MCP_TRANSPORT=http` serves the modern streamable HTTP transport with native bearer-token authentication and an unauthenticated `GET /health` endpoint. The deprecated SSE transport was removed.
 - **Platform-aware tools** — live editing tools are tagged `live` and automatically hidden on platforms without a Word COM/JXA bridge (Linux), instead of failing at call time.
-- **Modular registration** — tool registrations live in `word_mcp_live_cheemscheems/mcp_tools/`, one module per category.
+- **Modular registration** — tool registrations live in `word_mcp_live_gavintomlins/mcp_tools/`, one module per category.
 - **Error masking** — exception details are masked from clients by default on HTTP deployments.
 - **Document validation** — `validate_document` runs business-rule checks (skewed table widths, distorted images, comment integrity, stale TOC fields, OOXML element order) with actionable messages ([ADR 0003](docs/adr/0003-two-layer-document-validation.md)).
 - **Markdown in and out** — `create_document_from_markdown` builds a full document in one call; `get_document_markdown` reads structure back for verification, with `{++ins++}`/`{--del--}` revision markup; `set_update_fields_on_open` keeps TOC/page fields fresh ([ADR 0004](docs/adr/0004-markdown-verification-and-authoring.md)).
