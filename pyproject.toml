@@ -27,9 +27,13 @@ dependencies = [
     "python-dotenv>=1.0",
     "msoffcrypto-tool>=5.4.2",
     "docx2pdf>=0.1.8",
-    "pytest>=8.4.2",
     "pywin32>=306; sys_platform == 'win32'",
     "Pillow>=10.0.0; sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4.2",
 ]
 
 [project.urls]
