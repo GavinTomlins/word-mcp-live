@@ -249,17 +249,23 @@ Live tools now work on macOS via JavaScript for Automation (JXA). Same tool name
 
 ## Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `MCP_AUTHOR` | `"Author"` | Author name for tracked changes and comments |
-| `MCP_AUTHOR_INITIALS` | `""` | Author initials for comments |
-| `MCP_TRANSPORT` | `stdio` | Transport type: `stdio`, `sse`, or `streamable-http` |
-| `MCP_HOST` | `127.0.0.1` | Host to bind (for SSE/HTTP transports; use `0.0.0.0` for remote access) |
-| `MCP_PORT` | `8000` | Port to bind (for SSE/HTTP transports) |
-| `MCP_ALLOWED_DIR` | *(none)* | Restrict file access to this directory and its subdirectories (path sandbox) |
-| `MCP_MAX_BACKUPS` | `5` | Max automatic backups to keep per document; set to `0` for unlimited |
-| `WORD_MCP_LIVE_API_KEY` | *(required)* | Bearer token for HTTP/SSE transport authentication. **Required** for HTTP/SSE mode. Set to a secret value |
-| `WORD_MCP_LIVE_INSECURE` | *(none)* | Set to `true` to disable authentication (local/dev only, NOT for remote access) |
+| Variable | Legacy alias | Default | Description |
+|----------|--------------|---------|-------------|
+| `WORD_MCP_AUTHOR` | `MCP_AUTHOR` | `"Author"` | Author name for tracked changes and comments |
+| `WORD_MCP_AUTHOR_INITIALS` | `MCP_AUTHOR_INITIALS` | `""` | Author initials for comments |
+| `WORD_MCP_TRANSPORT` | `MCP_TRANSPORT` | `stdio` | Transport type: `stdio` or `http` (streamable HTTP; `streamable-http` also accepted). SSE was removed (deprecated in the MCP spec) |
+| `WORD_MCP_HOST` | `MCP_HOST` | `127.0.0.1` | Host to bind (HTTP transport; use `0.0.0.0` for remote access) |
+| `WORD_MCP_PORT` | `PORT`, `MCP_PORT` | `8000` | Port to bind (HTTP transport) |
+| `WORD_MCP_PATH` | `MCP_PATH` | `/mcp` | Endpoint path (HTTP transport) |
+| `WORD_MCP_API_KEY` | `WORD_MCP_LIVE_API_KEY` | *(required for HTTP)* | Bearer token for HTTP transport authentication. Set to a secret value |
+| `WORD_MCP_INSECURE` | `WORD_MCP_LIVE_INSECURE` | `false` | Set to `true` to disable authentication (local/dev only, NOT for remote access) |
+| `WORD_MCP_LOG_LEVEL` | `FASTMCP_LOG_LEVEL` | `INFO` | Log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
+| `WORD_MCP_MASK_ERRORS` | — | *(auto)* | Mask exception details from clients; defaults to on for HTTP, off for stdio |
+| `MCP_ALLOWED_DIR` | — | *(none)* | Restrict file access to this directory and its subdirectories (path sandbox) |
+| `MCP_MAX_BACKUPS` | — | `5` | Max automatic backups to keep per document; set to `0` for unlimited |
+
+The HTTP transport also exposes an unauthenticated `GET /health` endpoint for
+load-balancer and platform health checks.
 
 For remote deployment, see [RENDER_DEPLOYMENT.md](RENDER_DEPLOYMENT.md).
 

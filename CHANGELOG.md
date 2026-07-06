@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Startup crash on FastMCP 3.x** — `FastMCP(description=...)` raised `TypeError` (the parameter is `instructions`); the server could not start with the locked `fastmcp` 3.4.3. Also fixed double-escaped `\n` in the server instructions.
+- **Startup crash on macOS/Linux** — `screen_capture_tools` imported PIL at module level while Pillow is a Windows-only dependency; the import is now deferred to the Windows capture path.
+
+### Changed
+- **FastMCP 3.x alignment** (per [gofastmcp.com/servers/server](https://gofastmcp.com/servers/server)): pinned `fastmcp>=3.0,<4`; server is now built by a `build_server(settings)` factory (`server.py`) with `instructions`, `on_duplicate="error"`, and `mask_error_details` (on by default for HTTP).
+- **Native authentication** — the hand-rolled ASGI bearer middleware was replaced by FastMCP's `StaticTokenVerifier` via the `auth=` constructor parameter (standard 401 + `WWW-Authenticate` handling).
+- **Typed configuration** — new `config.py` (pydantic-settings). New `WORD_MCP_*` variable names with full backward compatibility for the legacy names (`MCP_TRANSPORT`, `MCP_HOST`, `PORT`/`MCP_PORT`, `MCP_PATH`, `WORD_MCP_LIVE_API_KEY`, `WORD_MCP_LIVE_INSECURE`, `MCP_AUTHOR`, `MCP_AUTHOR_INITIALS`).
+- **Modular tool registration** — the 1,900-line `register_tools()` in `main.py` was split into 13 modules under `mcp_tools/`, each exposing `register(mcp)`.
+- **Platform-aware live tools** — all live tools are tagged `live` and are hidden (not just failing) on platforms without a Word COM/JXA bridge, via `mcp.disable(tags={"live"})`.
+- **Lifespan management** — save/path monkey-patches and the automatic backup loop now run in the FastMCP lifespan (with teardown) instead of imperatively in `run_server()`.
+- **Observability** — new per-tool logging middleware (name, latency, outcome) and an unauthenticated `GET /health` endpoint for platform health checks.
+
+### Removed
+- **SSE transport** (deprecated in the MCP spec) — use `WORD_MCP_TRANSPORT=http`. `MCP_TRANSPORT=sse` now fails fast with a clear error; `setup_mcp.py` no longer offers SSE.
+
 ## [1.6.0] - 2026-04-29
 
 ### Added
