@@ -45,31 +45,19 @@ def get_transport_choice():
     print("\nTransport Configuration:")
     print("1. STDIO (default, local execution)")
     print("2. Streamable HTTP (modern, recommended for web deployment)")
-    print("3. SSE (Server-Sent Events, for compatibility)")
-    
-    choice = input("\nSelect transport type (1-3, default: 1): ").strip()
-    
+
+    choice = input("\nSelect transport type (1-2, default: 1): ").strip()
+
     if choice == "2":
         host = input("Host (default: 127.0.0.1): ").strip() or "127.0.0.1"
         port = input("Port (default: 8000): ").strip() or "8000"
         path = input("Path (default: /mcp): ").strip() or "/mcp"
-        
+
         return {
             "transport": "streamable-http",
             "host": host,
             "port": port,
             "path": path
-        }
-    elif choice == "3":
-        host = input("Host (default: 127.0.0.1): ").strip() or "127.0.0.1"
-        port = input("Port (default: 8000): ").strip() or "8000"
-        sse_path = input("SSE Path (default: /sse): ").strip() or "/sse"
-        
-        return {
-            "transport": "sse",
-            "host": host,
-            "port": port,
-            "sse_path": sse_path
         }
     else:
         # Default to stdio
@@ -200,12 +188,6 @@ def generate_mcp_config_local(python_path, transport_config):
             "MCP_PORT": transport_config["port"],
             "MCP_PATH": transport_config["path"]
         })
-    elif transport_config["transport"] == "sse":
-        env.update({
-            "MCP_HOST": transport_config["host"],
-            "MCP_PORT": transport_config["port"],
-            "MCP_SSE_PATH": transport_config["sse_path"]
-        })
     # For stdio transport, no additional environment variables needed
     
     # Create MCP configuration dictionary
@@ -250,12 +232,6 @@ def generate_mcp_config_uvx(transport_config):
             "MCP_PORT": transport_config["port"],
             "MCP_PATH": transport_config["path"]
         })
-    elif transport_config["transport"] == "sse":
-        env.update({
-            "MCP_HOST": transport_config["host"],
-            "MCP_PORT": transport_config["port"],
-            "MCP_SSE_PATH": transport_config["sse_path"]
-        })
     # For stdio transport, no additional environment variables needed
     
     # Create MCP configuration dictionary
@@ -299,12 +275,6 @@ def generate_mcp_config_module(transport_config):
             "MCP_HOST": transport_config["host"],
             "MCP_PORT": transport_config["port"],
             "MCP_PATH": transport_config["path"]
-        })
-    elif transport_config["transport"] == "sse":
-        env.update({
-            "MCP_HOST": transport_config["host"],
-            "MCP_PORT": transport_config["port"],
-            "MCP_SSE_PATH": transport_config["sse_path"]
         })
 
     
@@ -363,13 +333,7 @@ def print_config_instructions(config_path, transport_config):
         print(f"   Server will be accessible at: http://{transport_config['host']}:{transport_config['port']}{transport_config['path']}")
         print(f"   \n   To test the server manually:")
         print(f"   curl -X POST http://{transport_config['host']}:{transport_config['port']}{transport_config['path']}")
-        
-    elif transport_config["transport"] == "sse":
-        print(f"\n📡 SSE Transport Configuration:")
-        print(f"   Server will be accessible at: http://{transport_config['host']}:{transport_config['port']}{transport_config['sse_path']}")
-        print(f"   \n   To test the server manually:")
-        print(f"   curl http://{transport_config['host']}:{transport_config['port']}{transport_config['sse_path']}")
-        
+
     else:  # stdio
         print(f"\n💻 STDIO Transport Configuration:")
         print(f"   Server runs locally with standard input/output")
@@ -408,18 +372,16 @@ def create_package_structure():
     if not os.path.exists(env_example_path):
         with open(env_example_path, 'w') as f:
             f.write("""# Transport Configuration
-# Valid options: stdio, streamable-http, sse
-MCP_TRANSPORT=stdio
+# Valid options: stdio, http (streamable HTTP; 'streamable-http' also accepted)
+WORD_MCP_TRANSPORT=stdio
 
-# HTTP/SSE Configuration (when not using stdio)
-MCP_HOST=127.0.0.1
-MCP_PORT=8000
+# HTTP Configuration (when not using stdio)
+WORD_MCP_HOST=127.0.0.1
+WORD_MCP_PORT=8000
+WORD_MCP_PATH=/mcp
 
-# Streamable HTTP specific
-MCP_PATH=/mcp
-
-# SSE specific  
-MCP_SSE_PATH=/sse
+# Bearer token required for HTTP transport
+# WORD_MCP_API_KEY=your-secret-key
 
 """)
         print(f"Created .env.example at: {env_example_path}")
@@ -520,5 +482,3 @@ if __name__ == '__main__':
         print(f"  - Port: {transport_config.get('port', 'N/A')}")
         if transport_config['transport'] == 'streamable-http':
             print(f"  - Path: {transport_config.get('path', 'N/A')}")
-        elif transport_config['transport'] == 'sse':
-            print(f"  - SSE Path: {transport_config.get('sse_path', 'N/A')}")

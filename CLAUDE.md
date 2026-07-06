@@ -56,7 +56,7 @@
 
 ### 实时编辑工具不可用（仅 Windows/macOS）
 
-在 Linux 上 `word_live_*` 工具不可用。此时只能：
+在 Linux 上 `word_live_*` 工具会被服务器自动隐藏（不会出现在工具列表中）。此时只能：
 1. 关闭 Word 中的文档
 2. 使用 python-docx 工具操作
 3. 告知用户需要在 Windows/macOS 上才能实时编辑
