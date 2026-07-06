@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Startup crash on FastMCP 3.x** — `FastMCP(description=...)` raised `TypeError` (the parameter is `instructions`); the server could not start with the locked `fastmcp` 3.4.3. Also fixed double-escaped `\n` in the server instructions.
 - **Startup crash on macOS/Linux** — `screen_capture_tools` imported PIL at module level while Pillow is a Windows-only dependency; the import is now deferred to the Windows capture path.
+- **All `word_live_*` tools broken on macOS** — a misapplied patch left `word_mac.py` uncompilable (Python statements pasted inside a VBA-lines list literal, dropping the `fileNum` declaration); every live tool failed at import with "invalid syntax (line 1311)".
+- **`word_live_save` reported success without saving on macOS** — Word for Mac's scripted save can silently no-op when the sandbox wants user consent, while the document's `saved` property still reads true. `mac_save` now verifies the on-disk mtime moved (or the saveAs target exists) and returns `saved: false` with recovery guidance when the write never landed.
+- **`word_live_format_text` highlight crash on macOS** — Windows `WdColorIndex` integers were fed to the JXA string escaper; they are now mapped to the enum name strings JXA expects (`7` → `"yellow"`, etc.).
 
 ### Changed
 - **FastMCP 3.x alignment** (per [gofastmcp.com/servers/server](https://gofastmcp.com/servers/server)): pinned `fastmcp>=3.0,<4`; server is now built by a `build_server(settings)` factory (`server.py`) with `instructions`, `on_duplicate="error"`, and `mask_error_details` (on by default for HTTP).
@@ -28,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Platform-aware live tools** — all live tools are tagged `live` and are hidden (not just failing) on platforms without a Word COM/JXA bridge, via `mcp.disable(tags={"live"})`.
 - **Lifespan management** — save/path monkey-patches and the automatic backup loop now run in the FastMCP lifespan (with teardown) instead of imperatively in `run_server()`.
 - **Observability** — new per-tool logging middleware (name, latency, outcome) and an unauthenticated `GET /health` endpoint for platform health checks.
+
+- **Fork rebrand** — distribution renamed to `word-mcp-live-gavintomlins` and the internal package to `word_mcp_live_gavintomlins`; registry metadata (`server.json`, `manifest.json`), client config examples, and contact links updated to this fork, with the full lineage credited in README Acknowledgments and the LICENSE copyright holders retained (Gavin Tomlins added). The `word_mcp_server` entry point is unchanged, so existing client configs keep working.
 
 ### Removed
 - **SSE transport** (deprecated in the MCP spec) — use `WORD_MCP_TRANSPORT=http`. `MCP_TRANSPORT=sse` now fails fast with a clear error; `setup_mcp.py` no longer offers SSE.
