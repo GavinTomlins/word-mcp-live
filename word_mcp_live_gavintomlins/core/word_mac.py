@@ -1290,6 +1290,12 @@ JSON.stringify({{removed: true, count: bodyCount}});
         # can read it back (Variables(...) round-trip requires quoting that
         # breaks AppleScript's `do Visual Basic` string literal).
         try:
+            # Use a temporary file with a unique name instead of a
+            # hardcoded /tmp/ path (race-condition / symlink risk).
+            import tempfile
+
+            _hf_fd, _hf_path = tempfile.mkstemp(suffix="_hf_cleared.txt")
+            os.close(_hf_fd)
             # VBA source (write a flag file so AppleScript doesn't have to
             # round-trip the count through a string-quoted Variables() call).
             vba_lines = [
@@ -1306,15 +1312,11 @@ JSON.stringify({{removed: true, count: bodyCount}});
                 "        n = n + 1",
                 "    Next",
                 "Next",
-                # Use a temporary file with a unique name instead of a
-                # hardcoded /tmp/ path (race-condition / symlink risk).
-                _hf_fd, _hf_path = tempfile.mkstemp(suffix="_hf_cleared.txt")
-                os.close(_hf_fd)
-                vba_lines.append(
-                    f'Open "{_hf_path}" For Output As #fileNum'
-                )
-                vba_lines.append("Print #fileNum, CStr(n)")
-                vba_lines.append("Close #fileNum")
+                "Dim fileNum As Integer",
+                "fileNum = FreeFile",
+                f'Open "{_hf_path}" For Output As #fileNum',
+                "Print #fileNum, CStr(n)",
+                "Close #fileNum",
             ]
             # Build a single-line VBA program (do Visual Basic accepts colon
             # separators between statements). Then escape every literal " as ""
