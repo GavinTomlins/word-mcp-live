@@ -1,10 +1,10 @@
 <div align="center">
 
-# word-mcp-live-cheemscheems
+# word-mcp-live-gavintomlins
 
 **唯一能在 Word 打开时实时编辑文档的 MCP 服务器**
 
-`实时编辑` &middot; `修订模式` &middot; `单步撤销` &middot; `124 个工具` &middot; `跨平台`
+`实时编辑` &middot; `修订模式` &middot; `单步撤销` &middot; `125 个工具` &middot; `跨平台`
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -14,7 +14,7 @@
 
 ---
 
-word-mcp-live-cheemscheems 让任何支持 [MCP](https://modelcontextprotocol.io/) 的 AI 助手获得对 Microsoft Word 的完全控制。打开文档，告诉 AI 你需要什么，然后看着它一步步完成——格式调整、修订标记、批注、全部实时生效。
+word-mcp-live-gavintomlins 让任何支持 [MCP](https://modelcontextprotocol.io/) 的 AI 助手获得对 Microsoft Word 的完全控制。打开文档，告诉 AI 你需要什么，然后看着它一步步完成——格式调整、修订标记、批注、全部实时生效。
 
 ## 核心特性
 
@@ -32,13 +32,13 @@ word-mcp-live-cheemscheems 让任何支持 [MCP](https://modelcontextprotocol.io
 ## 快速开始
 
 ```bash
-pip install word-mcp-live-cheemscheems
+pip install git+https://github.com/GavinTomlins/word-mcp-live.git
 ```
 
 或从源码安装：
 
 ```bash
-git clone https://github.com/cheemscheems/word-mcp-live.git
+git clone https://github.com/GavinTomlins/word-mcp-live.git
 cd word-mcp-live
 pip install -e .
 ```
@@ -53,9 +53,9 @@ pip install -e .
 ```json
 {
   "mcpServers": {
-    "word": {
+    "word-mcp-live-gavintomlins": {
       "command": "uvx",
-      "args": ["word-mcp-live-cheemscheems"],
+      "args": ["--from", "git+https://github.com/GavinTomlins/word-mcp-live.git", "word_mcp_server"],
       "env": {
         "MCP_AUTHOR": "Your Name",
         "MCP_AUTHOR_INITIALS": "YN"
@@ -75,9 +75,9 @@ pip install -e .
 ```json
 {
   "mcpServers": {
-    "word": {
+    "word-mcp-live-gavintomlins": {
       "command": "uvx",
-      "args": ["word-mcp-live-cheemscheems"],
+      "args": ["--from", "git+https://github.com/GavinTomlins/word-mcp-live.git", "word_mcp_server"],
       "env": {
         "MCP_AUTHOR": "Your Name",
         "MCP_AUTHOR_INITIALS": "YN"
@@ -142,7 +142,7 @@ pip install -e .
 
 ## 工具参考
 
-**124 个工具**，详情请参阅 [TOOLS.md](TOOLS.md)。
+**125 个工具**，详情请参阅 [TOOLS.md](TOOLS.md)。
 
 | 分类 | 数量 |
 |----------|-------|

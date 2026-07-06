@@ -1665,7 +1665,7 @@ wheels = [
 ]
 
 [[package]]
-name = "word-mcp-live-cheemscheems"
+name = "word-mcp-live-gavintomlins"
 version = "1.6.20"
 source = { editable = "." }
 dependencies = [

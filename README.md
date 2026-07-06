@@ -1,12 +1,11 @@
 <div align="center">
 
-# word-mcp-live-cheemscheems
+# word-mcp-live-gavintomlins
 
 **The only MCP server that edits Word documents while they're open**
 
-`Live editing` &middot; `Tracked changes` &middot; `Per-action undo` &middot; `121 tools` &middot; `Cross-platform`
+`Live editing` &middot; `Tracked changes` &middot; `Per-action undo` &middot; `125 tools` &middot; `Cross-platform`
 
-[![PyPI](https://img.shields.io/pypi/v/word-mcp-live-cheemscheems?color=blue)](https://pypi.org/project/word-mcp-live-cheemscheems/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Platform: Windows + macOS/Linux](https://img.shields.io/badge/platform-Windows%20%2B%20macOS%2FLinux-lightgrey)]()
@@ -15,7 +14,7 @@
 
 ---
 
-word-mcp-live-cheemscheems gives any AI assistant that supports [MCP](https://modelcontextprotocol.io/) full control of Microsoft Word. Open a document, tell the AI what you need, and watch it happen — formatting, tracked changes, comments, and all. Changes appear live in your open document.
+word-mcp-live-gavintomlins gives any AI assistant that supports [MCP](https://modelcontextprotocol.io/) full control of Microsoft Word. Open a document, tell the AI what you need, and watch it happen — formatting, tracked changes, comments, and all. Changes appear live in your open document.
 
 ## What's New — GT Improvements
 
@@ -27,12 +26,16 @@ The server core was rebuilt on FastMCP 3.x (full details in the [CHANGELOG](CHAN
 - **Platform-aware tools** — live editing tools are tagged `live` and automatically hidden on platforms without a Word COM/JXA bridge (Linux), instead of failing at call time.
 - **Modular registration** — tool registrations live in `word_mcp_live_cheemscheems/mcp_tools/`, one module per category.
 - **Error masking** — exception details are masked from clients by default on HTTP deployments.
+- **Document validation** — `validate_document` runs business-rule checks (skewed table widths, distorted images, comment integrity, stale TOC fields, OOXML element order) with actionable messages ([ADR 0003](docs/adr/0003-two-layer-document-validation.md)).
+- **Markdown in and out** — `create_document_from_markdown` builds a full document in one call; `get_document_markdown` reads structure back for verification, with `{++ins++}`/`{--del--}` revision markup; `set_update_fields_on_open` keeps TOC/page fields fresh ([ADR 0004](docs/adr/0004-markdown-verification-and-authoring.md)).
+- **Workflow guidance shipped with the server** — a `word_workflow_guide` MCP prompt, a `word-live` project skill, and the **doc-oracle agent** (see below) encode tool routing and the mandatory validate + read-back loop ([ADR 0005](docs/adr/0005-workflow-guidance-prompt-skill-agent.md)).
+- **Architecture decision records** — design decisions and the processes behind them are documented in [docs/adr/](docs/adr/).
 
 <table>
 <tr>
 <td width="50%">
 
-### Without word-mcp-live-cheemscheems
+### Without word-mcp-live-gavintomlins
 
 - AI can discuss your document but can't touch it
 - You copy-paste between AI and Word, losing formatting
@@ -42,7 +45,7 @@ The server core was rebuilt on FastMCP 3.x (full details in the [CHANGELOG](CHAN
 </td>
 <td width="50%">
 
-### With word-mcp-live-cheemscheems
+### With word-mcp-live-gavintomlins
 
 - "Add a tracked change replacing ABC Corp with XYZ Ltd" — done
 - Changes appear live in your open Word document
@@ -53,10 +56,6 @@ The server core was rebuilt on FastMCP 3.x (full details in the [CHANGELOG](CHAN
 </tr>
 </table>
 
-### See it in action
-
-https://github.com/user-attachments/assets/fbb09af4-1e25-4e49-94d0-45b363278810
-
 ## What Sets This Apart
 
 - **Live editing** — Edit documents while they're open in Word. No save-close-reopen cycle.
@@ -65,7 +64,7 @@ https://github.com/user-attachments/assets/fbb09af4-1e25-4e49-94d0-45b363278810
 - **Threaded comments** — Add, reply, resolve, and delete comments like a human reviewer.
 - **Layout diagnostics** — Detects formatting problems before they become print disasters.
 - **Equations & cross-references** — Insert math formulas and auto-updating references.
-- **121 tools** — The most comprehensive Word MCP server available.
+- **125 tools** — The most comprehensive Word MCP server available.
 - **Automatic backups** — Periodic backup every 5 minutes + on-demand backup before destructive operations. Stored in `_backup/` folder, max 5 copies kept.
 - **Path sandbox** — Optional `MCP_ALLOWED_DIR` restricts file access to a single directory tree.
 - **COM timeout protection** — Long-running COM operations (replace, save, etc.) have configurable timeouts to prevent server hang on remote/unstable Word connections.
@@ -74,13 +73,13 @@ https://github.com/user-attachments/assets/fbb09af4-1e25-4e49-94d0-45b363278810
 ## Quick Start
 
 ```bash
-pip install word-mcp-live-cheemscheems
+pip install git+https://github.com/GavinTomlins/word-mcp-live.git
 ```
 
 Or install from source:
 
 ```bash
-git clone https://github.com/cheemscheems/word-mcp-live.git
+git clone https://github.com/GavinTomlins/word-mcp-live.git
 cd word-mcp-live
 pip install -e .
 ```
@@ -95,12 +94,16 @@ Add to your `claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "word": {
+    "word-mcp-live-gavintomlins": {
       "command": "uvx",
-      "args": ["word-mcp-live-cheemscheems"],
+      "args": [
+        "--from",
+        "git+https://github.com/GavinTomlins/word-mcp-live.git",
+        "word_mcp_server"
+      ],
       "env": {
-        "MCP_AUTHOR": "Your Name",
-        "MCP_AUTHOR_INITIALS": "YN"
+        "WORD_MCP_AUTHOR": "Your Name",
+        "WORD_MCP_AUTHOR_INITIALS": "YN"
       }
     }
   }
@@ -117,12 +120,16 @@ Add to your `.mcp.json`:
 ```json
 {
   "mcpServers": {
-    "word": {
+    "word-mcp-live-gavintomlins": {
       "command": "uvx",
-      "args": ["word-mcp-live-cheemscheems"],
+      "args": [
+        "--from",
+        "git+https://github.com/GavinTomlins/word-mcp-live.git",
+        "word_mcp_server"
+      ],
       "env": {
-        "MCP_AUTHOR": "Your Name",
-        "MCP_AUTHOR_INITIALS": "YN"
+        "WORD_MCP_AUTHOR": "Your Name",
+        "WORD_MCP_AUTHOR_INITIALS": "YN"
       }
     }
   }
@@ -139,12 +146,16 @@ Add to `~/.cursor/mcp.json`:
 ```json
 {
   "mcpServers": {
-    "word": {
+    "word-mcp-live-gavintomlins": {
       "command": "uvx",
-      "args": ["word-mcp-live-cheemscheems"],
+      "args": [
+        "--from",
+        "git+https://github.com/GavinTomlins/word-mcp-live.git",
+        "word_mcp_server"
+      ],
       "env": {
-        "MCP_AUTHOR": "Your Name",
-        "MCP_AUTHOR_INITIALS": "YN"
+        "WORD_MCP_AUTHOR": "Your Name",
+        "WORD_MCP_AUTHOR_INITIALS": "YN"
       }
     }
   }
@@ -156,20 +167,22 @@ Add to `~/.cursor/mcp.json`:
 <details>
 <summary><b>VS Code / Copilot</b></summary>
 
-**One-click:** [Install in VS Code](vscode:mcp/install?%7B%22name%22%3A%20%22word%22%2C%20%22command%22%3A%20%22uvx%22%2C%20%22args%22%3A%20%5B%22word-mcp-live-cheemscheems%22%5D%7D)
-
-**Manual:** Add to your VS Code `settings.json`:
+Add to your VS Code `settings.json`:
 
 ```json
 {
   "mcp": {
     "servers": {
-      "word": {
+      "word-mcp-live-gavintomlins": {
         "command": "uvx",
-        "args": ["word-mcp-live-cheemscheems"],
+        "args": [
+          "--from",
+          "git+https://github.com/GavinTomlins/word-mcp-live.git",
+          "word_mcp_server"
+        ],
         "env": {
-          "MCP_AUTHOR": "Your Name",
-          "MCP_AUTHOR_INITIALS": "YN"
+          "WORD_MCP_AUTHOR": "Your Name",
+          "WORD_MCP_AUTHOR_INITIALS": "YN"
         }
       }
     }
@@ -187,12 +200,16 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 ```json
 {
   "mcpServers": {
-    "word": {
+    "word-mcp-live-gavintomlins": {
       "command": "uvx",
-      "args": ["word-mcp-live-cheemscheems"],
+      "args": [
+        "--from",
+        "git+https://github.com/GavinTomlins/word-mcp-live.git",
+        "word_mcp_server"
+      ],
       "env": {
-        "MCP_AUTHOR": "Your Name",
-        "MCP_AUTHOR_INITIALS": "YN"
+        "WORD_MCP_AUTHOR": "Your Name",
+        "WORD_MCP_AUTHOR_INITIALS": "YN"
       }
     }
   }
@@ -204,26 +221,28 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 <details>
 <summary><b>Docker</b></summary>
 
+> An image is not yet published for this fork. Once available it will be:
+
 ```json
 {
   "mcpServers": {
-    "word": {
+    "word-mcp-live-gavintomlins": {
       "command": "docker",
-      "args": ["run", "-i", "--rm", "ghcr.io/cheemscheems/word-mcp-live"],
+      "args": ["run", "-i", "--rm", "ghcr.io/gavintomlins/word-mcp-live"],
       "env": {
-        "MCP_AUTHOR": "Your Name",
-        "MCP_AUTHOR_INITIALS": "YN"
+        "WORD_MCP_AUTHOR": "Your Name",
+        "WORD_MCP_AUTHOR_INITIALS": "YN"
       }
     }
   }
 }
 ```
 
-> Note: Docker mode supports cross-platform tools only. Live editing requires a native Windows install.
+> Note: a container only exposes the cross-platform tools. Live editing needs Word on the host (Windows COM / macOS JXA), which a container cannot reach.
 
 </details>
 
-> **`MCP_AUTHOR`** sets your name on tracked changes and comments (default: `"Author"`). **`MCP_AUTHOR_INITIALS`** sets comment initials.
+> **`WORD_MCP_AUTHOR`** sets your name on tracked changes and comments (default: `"Author"`; legacy alias `MCP_AUTHOR`). **`WORD_MCP_AUTHOR_INITIALS`** sets comment initials.
 
 ## Two Modes
 
@@ -235,6 +254,16 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 | **Best for** | Batch processing, document generation | Interactive editing, formatting, review |
 
 Both modes work together. The AI picks the right one for the task.
+
+## The doc-oracle Agent
+
+This repo ships a ready-to-use Word-document specialist for agent runtimes:
+
+- **[doc-oracle](.claude/agents/doc-oracle.md)** — an agent whose system prompt hard-codes the working discipline: route between cross-platform and live tools, build new documents with a single `create_document_from_markdown` call, back up before destructive edits, respect other authors' tracked changes, and **never report success without running `validate_document` and reading the result back** with `get_document_markdown` (or `word_live_get_diff` in live sessions).
+- **[word-live skill](.claude/skills/word-live/SKILL.md)** — the same routing decision tree and guardrails for interactive sessions.
+- **`word_workflow_guide` MCP prompt** — served over the protocol itself, so any MCP client can pull the workflow without repo access.
+
+Delegate document work to doc-oracle when you want the verification loop enforced rather than remembered.
 
 ### macOS Live Editing (New in v1.5.0)
 
@@ -357,13 +386,13 @@ The comment appears in Word's Review panel, anchored to the specified text.
 
 ## Tool Reference
 
-**124 tools** across two modes — see the [complete tool reference](TOOLS.md) for details.
+**125 tools** across two modes — see the [complete tool reference](TOOLS.md) for details.
 
 | Category | Count |
 |----------|-------|
 | Cross-platform (python-docx) | 80 |
-| Windows Live (COM automation) | 44 |
-| macOS Live (JXA automation) | 40 (of the 44 live tools) |
+| Windows Live (COM automation) | 45 |
+| macOS Live (JXA automation) | 40 (of the 45 live tools) |
 
 ## Requirements
 
@@ -378,14 +407,19 @@ The comment appears in Word's Review panel, anchored to the specified text.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style, and how to add new tools.
 
-Found a bug? [Open an issue](https://github.com/cheemscheems/word-mcp-live/issues/new?template=bug_report.md).
-Have an idea? [Request a feature](https://github.com/cheemscheems/word-mcp-live/issues/new?template=feature_request.md).
+Found a bug? [Open an issue](https://github.com/GavinTomlins/word-mcp-live/issues/new?template=bug_report.md).
+Have an idea? [Request a feature](https://github.com/GavinTomlins/word-mcp-live/issues/new?template=feature_request.md).
 
 ## Acknowledgments
 
-Built on top of [GongRzhe/Office-Word-MCP-Server](https://github.com/GongRzhe/Office-Word-MCP-Server) by GongRzhe (MIT License).
+This fork stands on two generations of prior work, gratefully acknowledged:
 
-Additional libraries: [python-docx](https://python-docx.readthedocs.io/) &middot; [FastMCP](https://github.com/modelcontextprotocol/python-sdk) &middot; [pywin32](https://github.com/mhammond/pywin32)
+- **[GongRzhe/Office-Word-MCP-Server](https://github.com/GongRzhe/Office-Word-MCP-Server)** by GongRzhe — the original cross-platform Word MCP server this lineage descends from (MIT License).
+- **[cheemscheems/word-mcp-live](https://github.com/cheemscheems/word-mcp-live)** by Yüce Karapazar — added the live editing engine (Windows COM and macOS JXA), native tracked changes, per-action undo, and the security hardening that this fork builds on.
+
+This fork (GavinTomlins) contributes the FastMCP 3.x architecture, typed configuration, document validation, Markdown authoring/verification tools, and the bundled doc-oracle agent described in [What's New — GT Improvements](#whats-new--gt-improvements).
+
+Additional libraries: [python-docx](https://python-docx.readthedocs.io/) &middot; [FastMCP](https://gofastmcp.com/) &middot; [pywin32](https://github.com/mhammond/pywin32)
 
 ## Privacy
 
@@ -393,9 +427,9 @@ This server runs entirely on your local machine. No data is collected, transmitt
 
 ## Support
 
-- **Bug reports:** [Open an issue](https://github.com/cheemscheems/word-mcp-live/issues/new?template=bug_report.md)
-- **Feature requests:** [Request a feature](https://github.com/cheemscheems/word-mcp-live/issues/new?template=feature_request.md)
-- **Discussions:** [GitHub Discussions](https://github.com/cheemscheems/word-mcp-live/discussions)
+- **Bug reports:** [Open an issue](https://github.com/GavinTomlins/word-mcp-live/issues/new?template=bug_report.md)
+- **Feature requests:** [Request a feature](https://github.com/GavinTomlins/word-mcp-live/issues/new?template=feature_request.md)
+- **Discussions:** [GitHub Discussions](https://github.com/GavinTomlins/word-mcp-live/discussions)
 
 ## License
 
@@ -415,4 +449,4 @@ MIT License — see [LICENSE](LICENSE) for details.
 >
 > By using this software, you acknowledge that you understand and accept these risks.
 
-<!-- mcp-name: io.github.cheemscheems/word-mcp-live -->
+<!-- mcp-name: io.github.gavintomlins/word-mcp-live -->

@@ -1,32 +1,32 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.cheemscheems/word-mcp-live-cheemscheems",
-  "title": "Word MCP Live (cheemscheems)",
-  "description": "Live Microsoft Word editing via MCP — tracked changes, undo, comments, 124 tools. Security-hardened fork.",
+  "name": "io.github.gavintomlins/word-mcp-live-gavintomlins",
+  "title": "Word MCP Live (gavintomlins)",
+  "description": "Live Microsoft Word editing via MCP — tracked changes, undo, comments, validation, 125 tools. Security-hardened fork.",
   "repository": {
-    "url": "https://github.com/cheemscheems/word-mcp-live",
+    "url": "https://github.com/GavinTomlins/word-mcp-live",
     "source": "github"
   },
   "version": "1.6.20",
   "packages": [
     {
       "registryType": "pypi",
-      "identifier": "word-mcp-live-cheemscheems",
+      "identifier": "word-mcp-live-gavintomlins",
       "version": "1.6.20",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
-          "name": "MCP_AUTHOR",
-          "description": "Author name shown on tracked changes and comments (default: AI Assistant)",
+          "name": "WORD_MCP_AUTHOR",
+          "description": "Author name shown on tracked changes and comments (default: Author; legacy alias MCP_AUTHOR)",
           "isRequired": false,
           "format": "string",
           "isSecret": false
         },
         {
-          "name": "MCP_AUTHOR_INITIALS",
-          "description": "Author initials shown on comments (default: AI)",
+          "name": "WORD_MCP_AUTHOR_INITIALS",
+          "description": "Author initials shown on comments (legacy alias MCP_AUTHOR_INITIALS)",
           "isRequired": false,
           "format": "string",
           "isSecret": false

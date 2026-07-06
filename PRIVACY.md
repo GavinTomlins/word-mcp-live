@@ -41,10 +41,10 @@ The server reads the following optional environment variables. These are stored 
 ## Open Source
 
 This project is open source under the MIT License. You can audit the full source code at:
-https://github.com/cheemscheems/word-mcp-live
+https://github.com/GavinTomlins/word-mcp-live
 
 ## Contact
 
 For privacy questions or concerns:
-- GitHub Issues: https://github.com/cheemscheems/word-mcp-live/issues
-- Maintainer: Yüce Karapazar
+- GitHub Issues: https://github.com/GavinTomlins/word-mcp-live/issues
+- Maintainer: Gavin Tomlins

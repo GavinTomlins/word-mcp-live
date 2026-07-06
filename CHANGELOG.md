@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`validate_document`** — business-rule validation of the OOXML package with actionable findings: table `tcW` vs `gridCol` width mismatch ("will skew"), image display vs actual aspect ratio ("distorted"), comment anchor/definition integrity across the comment part files, TOC fields without `w:updateFields`, missing `xml:space="preserve"`, and `pPr`/`rPr` element-order violations (ADR 0003).
+- **`get_document_markdown`** — structural read-back of a document as Markdown (headings, lists, tables, emphasis, hyperlinks); `show_revisions=True` renders tracked changes as CriticMarkup `{++ins++}`/`{--del--}` (ADR 0004).
+- **`create_document_from_markdown`** — batch document creation from a Markdown subset (headings, emphasis, code, links, nested bullet/numbered lists, pipe tables, `---` rendered as a border paragraph) in a single call (ADR 0004).
+- **`set_update_fields_on_open`** — sets `w:updateFields` in settings.xml so Word refreshes TOC/page-number fields on open (ADR 0004).
+- **`word_workflow_guide` MCP prompt** — tool-routing and verification workflow served over the protocol to any client (ADR 0005).
+- **Project skill and agent** — `.claude/skills/word-live/SKILL.md` (routing decision tree + guardrails) and `.claude/agents/doc-oracle.md` (Word-document specialist with a mandatory validate/read-back loop) ship with the repo (ADR 0005).
+- **Architecture decision records** — `docs/adr/` documents the FastMCP 3.x architecture and the design lessons behind the new quality tools.
+
 ### Fixed
 - **Startup crash on FastMCP 3.x** — `FastMCP(description=...)` raised `TypeError` (the parameter is `instructions`); the server could not start with the locked `fastmcp` 3.4.3. Also fixed double-escaped `\n` in the server instructions.
 - **Startup crash on macOS/Linux** — `screen_capture_tools` imported PIL at module level while Pillow is a Windows-only dependency; the import is now deferred to the Windows capture path.

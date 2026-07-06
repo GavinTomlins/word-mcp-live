@@ -12,12 +12,14 @@ from word_mcp_live_cheemscheems.mcp_tools import (
     extended,
     footnotes,
     formatting,
+    guidance,
     hyperlinks,
     layout,
     live_edit,
     live_layout,
     live_read,
     protection,
+    quality,
     tracked_changes,
 )
 
@@ -32,9 +34,11 @@ _ALL_MODULES = (
     hyperlinks,
     tracked_changes,
     layout,
+    quality,
     live_edit,
     live_read,
     live_layout,
+    guidance,
 )
 
 

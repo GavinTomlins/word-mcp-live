@@ -1,14 +1,14 @@
 {
   "manifest_version": "0.3",
-  "name": "word-mcp-live-cheemscheems",
+  "name": "word-mcp-live-gavintomlins",
   "version": "1.6.20",
   "description": "MCP server for Microsoft Word — live editing on Windows (COM) and macOS (JXA), plus cross-platform python-docx tools. Security-hardened fork.",
   "author": {
-    "name": "cheemscheems",
-    "url": "https://github.com/cheemscheems"
+    "name": "gavintomlins",
+    "url": "https://github.com/GavinTomlins"
   },
   "repository": {
-    "url": "https://github.com/cheemscheems/word-mcp-live",
+    "url": "https://github.com/GavinTomlins/word-mcp-live",
     "type": "git"
   },
   "license": "MIT",
@@ -17,10 +17,14 @@
     "entry_point": "word_mcp_server.py",
     "mcp_config": {
       "command": "uvx",
-      "args": ["word-mcp-live-cheemscheems"],
+      "args": [
+        "--from",
+        "git+https://github.com/GavinTomlins/word-mcp-live.git",
+        "word_mcp_server"
+      ],
       "env": {
-        "MCP_AUTHOR": "Author",
-        "MCP_AUTHOR_INITIALS": ""
+        "WORD_MCP_AUTHOR": "Author",
+        "WORD_MCP_AUTHOR_INITIALS": ""
       }
     }
   },

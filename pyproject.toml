@@ -3,16 +3,17 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "word-mcp-live-cheemscheems"
+name = "word-mcp-live-gavintomlins"
 version = "1.6.20"
 description = "MCP server for Microsoft Word — live editing on Windows (COM) and macOS (JXA), plus cross-platform python-docx tools"
 readme = "README.md"
 license = {file = "LICENSE"}
 authors = [
+    {name = "Gavin Tomlins"},
     {name = "GongRzhe", email = "gongrzhe@gmail.com"},
     {name = "Yüce Karapazar"}
 ]
-keywords = ["mcp", "word", "docx", "microsoft-word", "document", "com-automation", "python-docx", "ai", "llm", "claude"]
+keywords = ["mcp", "word", "docx", "microsoft-word", "document", "com-automation", "python-docx", "ai", "llm"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -32,10 +33,10 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/cheemscheems/word-mcp-live"
-"Bug Tracker" = "https://github.com/cheemscheems/word-mcp-live/issues"
-"Changelog" = "https://github.com/cheemscheems/word-mcp-live/blob/main/CHANGELOG.md"
-"Documentation" = "https://github.com/cheemscheems/word-mcp-live#readme"
+"Homepage" = "https://github.com/GavinTomlins/word-mcp-live"
+"Bug Tracker" = "https://github.com/GavinTomlins/word-mcp-live/issues"
+"Changelog" = "https://github.com/GavinTomlins/word-mcp-live/blob/main/CHANGELOG.md"
+"Documentation" = "https://github.com/GavinTomlins/word-mcp-live#readme"
 
 [tool.hatch.build.targets.wheel]
 only-include = [
