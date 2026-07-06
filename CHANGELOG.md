@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Comment threading tools (cross-platform)** — `reply_to_comment`, `resolve_comment` (with reopen), and `delete_comment` (cascades to replies) implement Word's full multi-part comment model (`commentsExtended`/`commentsIds`/`commentsExtensible`) on closed files, bringing these previously Windows-live-only capabilities to macOS and Linux (ADR 0007).
+- **Live watermarks on macOS** — `word_live_add_watermark` now works on Mac: a rotated, transparent, borderless shape created at the header-footer object anchors in the primary header story so it repeats on every page (ADR 0007).
 - **`validate_document`** — business-rule validation of the OOXML package with actionable findings: table `tcW` vs `gridCol` width mismatch ("will skew"), image display vs actual aspect ratio ("distorted"), comment anchor/definition integrity across the comment part files, TOC fields without `w:updateFields`, missing `xml:space="preserve"`, and `pPr`/`rPr` element-order violations (ADR 0003).
 - **`get_document_markdown`** — structural read-back of a document as Markdown (headings, lists, tables, emphasis, hyperlinks); `show_revisions=True` renders tracked changes as CriticMarkup `{++ins++}`/`{--del--}` (ADR 0004).
 - **`create_document_from_markdown`** — batch document creation from a Markdown subset (headings, emphasis, code, links, nested bullet/numbered lists, pipe tables, `---` rendered as a border paragraph) in a single call (ADR 0004). Accepts `template=` to inherit an existing .docx's styles, headers/footers and page setup — with graceful fallbacks for style-sparse templates (ADR 0006).
@@ -17,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Architecture decision records** — `docs/adr/` documents the FastMCP 3.x architecture and the design lessons behind the new quality tools.
 
 ### Fixed
+- **Comment readers returned nothing** — the legacy python-docx-based reader could not access the comments part (generic part without `.element`) and its fallback string-tested an lxml object repr; `get_all_comments`/`get_comments_by_author` now parse the package directly and report `resolved`, `parent_id` and `reply_count` per comment.
 - **Startup crash on FastMCP 3.x** — `FastMCP(description=...)` raised `TypeError` (the parameter is `instructions`); the server could not start with the locked `fastmcp` 3.4.3. Also fixed double-escaped `\n` in the server instructions.
 - **Startup crash on macOS/Linux** — `screen_capture_tools` imported PIL at module level while Pillow is a Windows-only dependency; the import is now deferred to the Windows capture path.
 - **All `word_live_*` tools broken on macOS** — a misapplied patch left `word_mac.py` uncompilable (Python statements pasted inside a VBA-lines list literal, dropping the `fileNum` declaration); every live tool failed at import with "invalid syntax (line 1311)".

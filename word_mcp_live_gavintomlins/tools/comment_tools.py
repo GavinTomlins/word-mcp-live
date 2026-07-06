@@ -36,11 +36,12 @@ async def get_all_comments(filename: str) -> str:
         }, indent=2)
     
     try:
-        # Load the document
-        doc = Document(filename)
-        
-        # Extract all comments
-        comments = extract_all_comments(doc)
+        from word_mcp_live_gavintomlins.core.comment_threads import list_comments
+        comments = list_comments(filename)
+        if not comments:
+            # Legacy fallback (python-docx based)
+            doc = Document(filename)
+            comments = extract_all_comments(doc)
         
         # Return results
         return json.dumps({
@@ -83,10 +84,11 @@ async def get_comments_by_author(filename: str, author: str) -> str:
     
     try:
         # Load the document
-        doc = Document(filename)
-        
-        # Extract all comments
-        all_comments = extract_all_comments(doc)
+        from word_mcp_live_gavintomlins.core.comment_threads import list_comments
+        all_comments = list_comments(filename)
+        if not all_comments:
+            doc = Document(filename)
+            all_comments = extract_all_comments(doc)
         
         # Filter by author
         author_comments = filter_comments_by_author(all_comments, author)

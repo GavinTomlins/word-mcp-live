@@ -1893,3 +1893,76 @@ JSON.stringify({{h1_applied: h1Applied, h2_applied: h2Applied}});
         result["stripped"] = stripped
 
     return json.dumps(result)
+
+
+def mac_add_watermark(
+    filename: str = None,
+    text: str = "DRAFT",
+    font_size: int = 72,
+    font_color: str = "C0C0C0",
+    rotation: int = -45,
+    section_index: int = 1,
+) -> str:
+    """Add a diagonal text watermark to an open document's primary header.
+
+    Word 16.x's scripting dictionary has no WordArt/AddTextEffect, so the
+    watermark is a transparent, borderless rectangle shape created *at the
+    header* (which anchors it in the primary header story so it repeats on
+    every page), rotated, with large gray text and behind-text wrapping.
+    """
+    doc_name = os.path.basename(filename) if filename else None
+    doc_ref = f'document "{_escape_as(doc_name)}"' if doc_name else "active document"
+
+    safe_text = _escape_as(text)
+    angle = rotation % 360
+    width = max(200, int(len(text) * font_size * 0.62))
+    height = int(font_size * 2.2)
+    try:
+        r, g, b = (
+            int(font_color[0:2], 16) * 257,
+            int(font_color[2:4], 16) * 257,
+            int(font_color[4:6], 16) * 257,
+        )
+    except (ValueError, IndexError):
+        r = g = b = 49344  # C0C0C0
+
+    script = f'''
+tell application "Microsoft Word"
+    set d to {doc_ref}
+    set hdr to get header of section {int(section_index)} of d index header footer primary
+    set s to make new shape at hdr with properties {{auto shape type:autoshape rectangle, width:{width}, height:{height}, name:"WordMcpWatermark"}}
+    set rotation of s to {angle}
+    set content of text range of text frame of s to "{safe_text}"
+    set tr to text range of text frame of s
+    set font size of font object of tr to {int(font_size)}
+    set color of font object of tr to {{{r}, {g}, {b}}}
+    set visible of fill format of s to false
+    set visible of line format of s to false
+    set wrap type of wrap format of s to wrap behind
+    set ps to page setup of d
+    set pw to page width of ps
+    set ph to page height of ps
+    try
+        set relative horizontal position of s to relative horizontal position page
+        set relative vertical position of s to relative vertical position page
+    end try
+    set left position of s to ((pw - {width}) / 2)
+    set top of s to ((ph - {height}) / 2)
+    return (name of d)
+end tell
+'''
+    result = _run_applescript(script, timeout=60)
+    return json.dumps({
+        "added": True,
+        "document": result.strip() or doc_name,
+        "text": text,
+        "rotation": angle,
+        "shape": "WordMcpWatermark",
+        "note": "Watermark anchored in the primary header story (repeats on "
+                "every page). Delete via the header in Word if needed.",
+    })
+
+
+def _escape_as(s: str) -> str:
+    """Escape a string for embedding in an AppleScript string literal."""
+    return (s or "").replace("\\", "\\\\").replace('"', '\\"')

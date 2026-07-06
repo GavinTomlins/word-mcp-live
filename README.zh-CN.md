@@ -4,7 +4,7 @@
 
 **唯一能在 Word 打开时实时编辑文档的 MCP 服务器**
 
-`实时编辑` &middot; `修订模式` &middot; `单步撤销` &middot; `125 个工具` &middot; `跨平台`
+`实时编辑` &middot; `修订模式` &middot; `单步撤销` &middot; `128 个工具` &middot; `跨平台`
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -142,7 +142,7 @@ pip install -e .
 
 ## 工具参考
 
-**125 个工具**，详情请参阅 [TOOLS.md](TOOLS.md)。
+**128 个工具**，详情请参阅 [TOOLS.md](TOOLS.md)。
 
 | 分类 | 数量 |
 |----------|-------|

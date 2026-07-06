@@ -4,7 +4,7 @@
 
 **The only MCP server that edits Word documents while they're open**
 
-`Live editing` &middot; `Tracked changes` &middot; `Per-action undo` &middot; `125 tools` &middot; `Cross-platform`
+`Live editing` &middot; `Tracked changes` &middot; `Per-action undo` &middot; `128 tools` &middot; `Cross-platform`
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -64,7 +64,7 @@ The server core was rebuilt on FastMCP 3.x (full details in the [CHANGELOG](CHAN
 - **Threaded comments** — Add, reply, resolve, and delete comments like a human reviewer.
 - **Layout diagnostics** — Detects formatting problems before they become print disasters.
 - **Equations & cross-references** — Insert math formulas and auto-updating references.
-- **125 tools** — The most comprehensive Word MCP server available.
+- **128 tools** — The most comprehensive Word MCP server available.
 - **Automatic backups** — Periodic backup every 5 minutes + on-demand backup before destructive operations. Stored in `_backup/` folder, max 5 copies kept.
 - **Path sandbox** — Optional `MCP_ALLOWED_DIR` restricts file access to a single directory tree.
 - **COM timeout protection** — Long-running COM operations (replace, save, etc.) have configurable timeouts to prevent server hang on remote/unstable Word connections.
@@ -268,10 +268,10 @@ Live tools now work on macOS via JavaScript for Automation (JXA). Same tool name
 | Tables (read, write, add rows) | COM | JXA |
 | Page layout, headers, bookmarks | COM | JXA |
 | Equations, cross-references | COM | JXA |
-| Threaded comment replies | COM | Not available |
-| Comment resolve/unresolve | COM | Not available |
+| Threaded comment replies | COM | Cross-platform tool (file closed) |
+| Comment resolve/unresolve | COM | Cross-platform tool (file closed) |
 | Undo history inspection | COM | Not available |
-| Watermarks | COM | Not available |
+| Watermarks | COM | JXA |
 
 ## The doc-oracle Agent
 
@@ -386,11 +386,11 @@ The comment appears in Word's Review panel, anchored to the specified text.
 
 ## Tool Reference
 
-**125 tools** across two modes — see the [complete tool reference](TOOLS.md) for details.
+**128 tools** across two modes — see the [complete tool reference](TOOLS.md) for details.
 
 | Category | Count |
 |----------|-------|
-| Cross-platform (python-docx) | 80 |
+| Cross-platform (python-docx) | 83 |
 | Windows Live (COM automation) | 45 |
 | macOS Live (JXA automation) | 40 (of the 45 live tools) |
 
