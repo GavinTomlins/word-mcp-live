@@ -17,6 +17,17 @@
 
 word-mcp-live-cheemscheems gives any AI assistant that supports [MCP](https://modelcontextprotocol.io/) full control of Microsoft Word. Open a document, tell the AI what you need, and watch it happen — formatting, tracked changes, comments, and all. Changes appear live in your open document.
 
+## What's New — GT Improvements
+
+The server core was rebuilt on FastMCP 3.x (full details in the [CHANGELOG](CHANGELOG.md)):
+
+- **FastMCP 3.x** — pinned `fastmcp>=3.0,<4`; the server is built by a `build_server(settings)` factory with lifespan-managed document hooks and backups, plus per-tool logging middleware.
+- **Typed configuration** — new `WORD_MCP_*` environment variables (pydantic-settings); all legacy names (`MCP_TRANSPORT`, `WORD_MCP_LIVE_API_KEY`, `MCP_AUTHOR`, …) keep working as aliases, so existing configs need no changes.
+- **Streamable HTTP** — `WORD_MCP_TRANSPORT=http` serves the modern streamable HTTP transport with native bearer-token authentication and an unauthenticated `GET /health` endpoint. The deprecated SSE transport was removed.
+- **Platform-aware tools** — live editing tools are tagged `live` and automatically hidden on platforms without a Word COM/JXA bridge (Linux), instead of failing at call time.
+- **Modular registration** — tool registrations live in `word_mcp_live_cheemscheems/mcp_tools/`, one module per category.
+- **Error masking** — exception details are masked from clients by default on HTTP deployments.
+
 <table>
 <tr>
 <td width="50%">
@@ -59,17 +70,6 @@ https://github.com/user-attachments/assets/fbb09af4-1e25-4e49-94d0-45b363278810
 - **Path sandbox** — Optional `MCP_ALLOWED_DIR` restricts file access to a single directory tree.
 - **COM timeout protection** — Long-running COM operations (replace, save, etc.) have configurable timeouts to prevent server hang on remote/unstable Word connections.
 - **Security-hardened** — All 10 audit findings from the initial security review have been addressed (fake signatures removed, AppleScript injection fixed, path traversal prevented, predictable temp files eliminated, and more).
-
-## What's New
-
-The server core was rebuilt on FastMCP 3.x (full details in the [CHANGELOG](CHANGELOG.md)):
-
-- **FastMCP 3.x** — pinned `fastmcp>=3.0,<4`; the server is built by a `build_server(settings)` factory with lifespan-managed document hooks and backups, plus per-tool logging middleware.
-- **Typed configuration** — new `WORD_MCP_*` environment variables (pydantic-settings); all legacy names (`MCP_TRANSPORT`, `WORD_MCP_LIVE_API_KEY`, `MCP_AUTHOR`, …) keep working as aliases, so existing configs need no changes.
-- **Streamable HTTP** — `WORD_MCP_TRANSPORT=http` serves the modern streamable HTTP transport with native bearer-token authentication and an unauthenticated `GET /health` endpoint. The deprecated SSE transport was removed.
-- **Platform-aware tools** — live editing tools are tagged `live` and automatically hidden on platforms without a Word COM/JXA bridge (Linux), instead of failing at call time.
-- **Modular registration** — tool registrations live in `word_mcp_live_cheemscheems/mcp_tools/`, one module per category.
-- **Error masking** — exception details are masked from clients by default on HTTP deployments.
 
 ## Quick Start
 
