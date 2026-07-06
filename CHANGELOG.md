@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Lifespan management** — save/path monkey-patches and the automatic backup loop now run in the FastMCP lifespan (with teardown) instead of imperatively in `run_server()`.
 - **Observability** — new per-tool logging middleware (name, latency, outcome) and an unauthenticated `GET /health` endpoint for platform health checks.
 
+- **Packaging** — `pytest` moved from runtime dependencies to a new `dev` extra, so end users no longer install the test framework and CONTRIBUTING's `pip install -e ".[dev]"` works as documented.
 - **Fork rebrand** — distribution renamed to `word-mcp-live-gavintomlins` and the internal package to `word_mcp_live_gavintomlins`; registry metadata (`server.json`, `manifest.json`), client config examples, and contact links updated to this fork, with the full lineage credited in README Acknowledgments and the LICENSE copyright holders retained (Gavin Tomlins added). The `word_mcp_server` entry point is unchanged, so existing client configs keep working.
 
 ### Removed

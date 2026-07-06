@@ -1674,10 +1674,14 @@ dependencies = [
     { name = "msoffcrypto-tool" },
     { name = "pillow", marker = "sys_platform == 'win32'" },
     { name = "pydantic-settings" },
-    { name = "pytest" },
     { name = "python-docx" },
     { name = "python-dotenv" },
     { name = "pywin32", marker = "sys_platform == 'win32'" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pytest" },
 ]
 
 [package.metadata]
@@ -1687,11 +1691,12 @@ requires-dist = [
     { name = "msoffcrypto-tool", specifier = ">=5.4.2" },
     { name = "pillow", marker = "sys_platform == 'win32'", specifier = ">=10.0.0" },
     { name = "pydantic-settings", specifier = ">=2.0" },
-    { name = "pytest", specifier = ">=8.4.2" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.4.2" },
     { name = "python-docx", specifier = ">=1.1.2" },
     { name = "python-dotenv", specifier = ">=1.0" },
     { name = "pywin32", marker = "sys_platform == 'win32'", specifier = ">=306" },
 ]
+provides-extras = ["dev"]
 
 [[package]]
 name = "zipp"
