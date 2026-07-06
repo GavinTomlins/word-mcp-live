@@ -1,4 +1,4 @@
-# word-mcp-live-cheemscheems 使用指引
+# word-mcp-live-gavintomlins 使用指引
 
 ## 两种模式的选择
 
