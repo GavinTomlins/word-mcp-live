@@ -241,23 +241,73 @@ JSON.stringify({{converted: true, path: "{escaped_path}"}});
 """)
 
 
+def _hfs_to_posix(hfs_path: str) -> str | None:
+    """Convert 'Macintosh HD:Users:x:file.docx' to '/Users/x/file.docx'."""
+    if not hfs_path or ":" not in hfs_path:
+        return None
+    parts = hfs_path.split(":")
+    return "/" + "/".join(parts[1:])
+
+
 def mac_save(filename: str = None, save_as: str = None) -> str:
-    """Save the document."""
+    """Save the document, VERIFYING the write reached disk.
+
+    Word for Mac's scripted save (JXA ``d.save()`` and AppleScript alike)
+    can silently no-op — typically when the sandbox wants user consent —
+    while ``d.saved()`` still reports true. So the on-disk mtime is the
+    only trustworthy signal; report honestly when it does not move.
+    """
+    import time
+
     finder = _doc_finder_js(filename)
     if save_as:
         escaped_path = _escape_js(save_as)
-        return _run_jxa(f"""
+        result = _run_jxa(f"""
 var app = Application("Microsoft Word");
 {finder}
 app.saveAs(d, {{fileName: "{escaped_path}"}});
-JSON.stringify({{saved: true, path: "{escaped_path}"}});
+JSON.stringify({{path: "{escaped_path}"}});
 """)
-    return _run_jxa(f"""
+        if not os.path.exists(save_as):
+            return json.dumps({
+                "saved": False,
+                "error": f"Word did not write {save_as}. It may be showing "
+                         "a permission or save dialog — check the Word "
+                         "window, or save manually with Cmd+S.",
+            })
+        return json.dumps({"saved": True, "path": save_as})
+
+    # Resolve the on-disk path first so the write can be verified.
+    info = json.loads(_run_jxa(f"""
+var app = Application("Microsoft Word");
+{finder}
+JSON.stringify({{name: d.name(), fullName: d.fullName()}});
+"""))
+    posix = _hfs_to_posix(info.get("fullName", ""))
+    before = os.path.getmtime(posix) if posix and os.path.exists(posix) else None
+
+    _run_jxa(f"""
 var app = Application("Microsoft Word");
 {finder}
 d.save();
-JSON.stringify({{saved: true, name: d.name()}});
+JSON.stringify({{requested: true}});
 """)
+
+    if posix and before is not None:
+        time.sleep(0.5)
+        after = os.path.getmtime(posix)
+        if after <= before:
+            return json.dumps({
+                "saved": False,
+                "name": info.get("name"),
+                "path": posix,
+                "error": "Word accepted the save command but the file on "
+                         "disk did not change. Word is likely waiting on a "
+                         "permission/save dialog, or the sandbox blocked "
+                         "the write — check the Word window and save "
+                         "manually with Cmd+S if needed.",
+            })
+    return json.dumps({"saved": True, "name": info.get("name"), "path": posix})
 
 
 def mac_undo(filename: str = None, times: int = 1) -> str:
@@ -657,7 +707,17 @@ var r = d.createRange({{start: startP, end: endP}});
     if font_color:
         fmt_lines.append(f'r.fontObject.color = {_color_to_mac_rgb(font_color)};')
     if highlight_color:
-        fmt_lines.append(f'r.highlightColorIndex = "{_escape_js(highlight_color)}";')
+        # Callers pass Windows WdColorIndex ints; JXA wants enum name strings.
+        _hl_names = {
+            0: "no highlight", 1: "black", 2: "blue", 3: "turquoise",
+            4: "bright green", 5: "pink", 6: "red", 7: "yellow", 8: "white",
+            9: "dark blue", 10: "teal", 11: "green", 12: "violet",
+            13: "dark red", 14: "dark yellow", 15: "gray50", 16: "gray25",
+        }
+        hl = highlight_color
+        if isinstance(hl, int):
+            hl = _hl_names.get(hl, "yellow")
+        fmt_lines.append(f'r.highlightColorIndex = "{_escape_js(hl)}";')
     if style_name:
         fmt_lines.append(f'r.style = d.wordStyles["{_escape_js(style_name.lower())}"];')
     if paragraph_alignment:
