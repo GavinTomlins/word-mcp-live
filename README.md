@@ -56,10 +56,6 @@ The server core was rebuilt on FastMCP 3.x (full details in the [CHANGELOG](CHAN
 </tr>
 </table>
 
-### See it in action
-
-https://github.com/user-attachments/assets/fbb09af4-1e25-4e49-94d0-45b363278810
-
 ## What Sets This Apart
 
 - **Live editing** — Edit documents while they're open in Word. No save-close-reopen cycle.
