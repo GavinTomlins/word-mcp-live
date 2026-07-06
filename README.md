@@ -255,16 +255,6 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 
 Both modes work together. The AI picks the right one for the task.
 
-## The doc-oracle Agent
-
-This repo ships a ready-to-use Word-document specialist for agent runtimes:
-
-- **[doc-oracle](.claude/agents/doc-oracle.md)** — an agent whose system prompt hard-codes the working discipline: route between cross-platform and live tools, build new documents with a single `create_document_from_markdown` call, back up before destructive edits, respect other authors' tracked changes, and **never report success without running `validate_document` and reading the result back** with `get_document_markdown` (or `word_live_get_diff` in live sessions).
-- **[word-live skill](.claude/skills/word-live/SKILL.md)** — the same routing decision tree and guardrails for interactive sessions.
-- **`word_workflow_guide` MCP prompt** — served over the protocol itself, so any MCP client can pull the workflow without repo access.
-
-Delegate document work to doc-oracle when you want the verification loop enforced rather than remembered.
-
 ### macOS Live Editing (New in v1.5.0)
 
 Live tools now work on macOS via JavaScript for Automation (JXA). Same tool names, same parameters — the server detects your platform and uses the right automation backend.
@@ -282,6 +272,16 @@ Live tools now work on macOS via JavaScript for Automation (JXA). Same tool name
 | Comment resolve/unresolve | COM | Not available |
 | Undo history inspection | COM | Not available |
 | Watermarks | COM | Not available |
+
+## The doc-oracle Agent
+
+This repo ships a ready-to-use Word-document specialist for agent runtimes:
+
+- **[doc-oracle](.claude/agents/doc-oracle.md)** — an agent whose system prompt hard-codes the working discipline: route between cross-platform and live tools, build new documents with a single `create_document_from_markdown` call (optionally on a brand template via `template=`), back up before destructive edits, respect other authors' tracked changes, and **never report success without running `validate_document` and reading the result back** with `get_document_markdown` (or `word_live_get_diff` in live sessions).
+- **[word-live skill](.claude/skills/word-live/SKILL.md)** — the same routing decision tree and guardrails for interactive sessions.
+- **`word_workflow_guide` MCP prompt** — served over the protocol itself, so any MCP client can pull the workflow without repo access.
+
+Delegate document work to doc-oracle when you want the verification loop enforced rather than remembered.
 
 ## Configuration
 
