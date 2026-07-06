@@ -119,3 +119,51 @@ def test_validate_document_tool_returns_json(tmp_path: Path):
     raw = asyncio.run(quality_tools.validate_document(path))
     report = json.loads(raw)
     assert report["valid"] is True
+
+
+def _make_template(path: Path, strip_styles=()) -> None:
+    """Create a template with a marker footer and a customised Heading 1."""
+    doc = Document()
+    doc.styles["Heading 1"].font.name = "Courier New"
+    doc.sections[0].footer.paragraphs[0].text = "TPL-FOOTER"
+    doc.add_paragraph("template body content that must not survive")
+    for name in strip_styles:
+        doc.styles[name].delete()
+    doc.save(str(path))
+
+
+def test_create_from_template_inherits_styles(tmp_path: Path):
+    tpl = tmp_path / "brand_template.docx"
+    _make_template(tpl)
+    out = str(tmp_path / "branded.docx")
+    markdown_to_document(SAMPLE_MARKDOWN, out, template=str(tpl))
+
+    doc = Document(out)
+    assert doc.styles["Heading 1"].font.name == "Courier New"
+    assert "TPL-FOOTER" in doc.sections[0].footer.paragraphs[0].text
+    md = document_to_markdown(out)
+    assert "# Quarterly Report" in md
+    assert "template body content" not in md
+    assert validate_docx(out)["valid"]
+
+
+def test_create_from_template_without_list_or_table_styles(tmp_path: Path):
+    tpl = tmp_path / "sparse_template.docx"
+    _make_template(
+        tpl,
+        strip_styles=("List Bullet", "List Bullet 2", "List Number", "Table Grid"),
+    )
+    out = str(tmp_path / "sparse.docx")
+    stats = markdown_to_document(SAMPLE_MARKDOWN, out, template=str(tpl))
+    assert stats["list_items"] == 5 and stats["tables"] == 1
+
+    md = document_to_markdown(out)
+    assert "First finding" in md and "Step one" in md
+    assert "| North | 100 |" in md
+    assert validate_docx(out)["valid"]
+
+
+def test_create_from_markdown_tool_rejects_missing_template(tmp_path: Path):
+    result = asyncio.run(quality_tools.create_document_from_markdown(
+        str(tmp_path / "x.docx"), "# T", template=str(tmp_path / "nope.docx")))
+    assert "does not exist" in result
