@@ -40,10 +40,10 @@ dependencies = [
 
 [tool.hatch.build.targets.wheel]
 only-include = [
-    "word_mcp_live_cheemscheems",
+    "word_mcp_live_gavintomlins",
     "office_word_mcp_server",
 ]
 sources = ["."]
 
 [project.scripts]
-word_mcp_server = "word_mcp_live_cheemscheems.main:run_server"
+word_mcp_server = "word_mcp_live_gavintomlins.main:run_server"

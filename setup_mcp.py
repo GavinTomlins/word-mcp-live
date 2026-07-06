@@ -283,7 +283,7 @@ def generate_mcp_config_module(transport_config):
         "mcpServers": {
             "word-document-server": {
                 "command": sys.executable,
-                "args": ["-m", "word_mcp_live_cheemscheems"],
+                "args": ["-m", "word_mcp_live_gavintomlins"],
                 "env": env
             }
         }
