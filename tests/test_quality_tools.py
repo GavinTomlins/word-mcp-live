@@ -167,3 +167,70 @@ def test_create_from_markdown_tool_rejects_missing_template(tmp_path: Path):
     result = asyncio.run(quality_tools.create_document_from_markdown(
         str(tmp_path / "x.docx"), "# T", template=str(tmp_path / "nope.docx")))
     assert "does not exist" in result
+
+
+SAMPLE_COMMENT_DOC = """\
+# Review Target
+
+The payment terms require attention before signing.
+"""
+
+
+def _comment_doc(tmp_path: Path) -> str:
+    from word_mcp_live_gavintomlins.tools.comment_write_tools import add_comment
+
+    path = str(tmp_path / "commented.docx")
+    markdown_to_document(SAMPLE_COMMENT_DOC, path)
+    result = json.loads(asyncio.run(add_comment(
+        path, "payment terms", "Should this be 45 days?", "Reviewer One", "R1")))
+    assert result["success"], result
+    return path, result["comment_id"]
+
+
+def test_reply_resolve_delete_comment_thread(tmp_path: Path):
+    from word_mcp_live_gavintomlins.tools.comment_write_tools import (
+        delete_comment, reply_to_comment, resolve_comment,
+    )
+
+    path, cid = _comment_doc(tmp_path)
+
+    reply = json.loads(asyncio.run(reply_to_comment(
+        path, cid, "Yes, 45 days is standard.", "Reviewer Two", "R2")))
+    assert reply["success"], reply
+
+    resolved = json.loads(asyncio.run(resolve_comment(path, cid)))
+    assert resolved["success"] and resolved["resolved"]
+
+    with zipfile.ZipFile(path) as zf:
+        names = set(zf.namelist())
+        assert {"word/commentsExtended.xml", "word/commentsIds.xml",
+                "word/commentsExtensible.xml"} <= names
+        ext = zf.read("word/commentsExtended.xml").decode()
+        assert 'paraIdParent' in ext and 'done="1"' in ext
+        doc_xml = zf.read("word/document.xml").decode()
+        assert doc_xml.count("commentReference") == 2
+    report = validate_docx(path)
+    assert report["valid"], report
+    assert not any("COMMENTS" in w for w in report["warnings"]), report
+
+    deleted = json.loads(asyncio.run(delete_comment(path, cid)))
+    assert deleted["success"], deleted
+    assert len(deleted["deleted_ids"]) == 2  # parent + reply
+
+    with zipfile.ZipFile(path) as zf:
+        doc_xml = zf.read("word/document.xml").decode()
+        assert "commentReference" not in doc_xml
+        comments = zf.read("word/comments.xml").decode()
+        assert "<w:comment " not in comments
+    assert validate_docx(path)["valid"]
+
+
+def test_reopen_comment(tmp_path: Path):
+    from word_mcp_live_gavintomlins.tools.comment_write_tools import resolve_comment
+
+    path, cid = _comment_doc(tmp_path)
+    asyncio.run(resolve_comment(path, cid))
+    reopened = json.loads(asyncio.run(resolve_comment(path, cid, resolved=False)))
+    assert reopened["success"] and reopened["resolved"] is False
+    with zipfile.ZipFile(path) as zf:
+        assert 'done="0"' in zf.read("word/commentsExtended.xml").decode()

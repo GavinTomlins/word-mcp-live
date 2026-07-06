@@ -66,3 +66,53 @@ def register(mcp):
             initials: Author initials (env: MCP_AUTHOR_INITIALS)
         """
         return comment_write_tools.add_comment(filename, target_text, comment_text, author, initials)
+
+    @mcp.tool(
+        annotations=ToolAnnotations(
+            title="Reply to Comment",
+            readOnlyHint=False,
+            destructiveHint=False,
+        ),
+    )
+    def reply_to_comment(filename: str, comment_id: int, reply_text: str,
+                         author: str = DEFAULT_AUTHOR, initials: str = DEFAULT_INITIALS):
+        """Add a threaded reply to an existing comment.
+
+        [cross-platform mode] Requires the .docx file to be CLOSED in Word.
+        On Windows with the file open, use word_live_reply_to_comment instead.
+
+        Use get_all_comments to find the comment_id. The reply appears
+        nested under the parent comment in Word's Review panel.
+        """
+        return comment_write_tools.reply_to_comment(
+            filename, comment_id, reply_text, author, initials
+        )
+
+    @mcp.tool(
+        annotations=ToolAnnotations(
+            title="Resolve Comment",
+            readOnlyHint=False,
+            destructiveHint=False,
+        ),
+    )
+    def resolve_comment(filename: str, comment_id: int, resolved: bool = True):
+        """Mark a comment thread resolved, or reopen it with resolved=False.
+
+        [cross-platform mode] Requires the .docx file to be CLOSED in Word.
+        On Windows with the file open, use word_live_resolve_comment instead.
+        """
+        return comment_write_tools.resolve_comment(filename, comment_id, resolved)
+
+    @mcp.tool(
+        annotations=ToolAnnotations(
+            title="Delete Comment",
+            destructiveHint=True,
+        ),
+    )
+    def delete_comment(filename: str, comment_id: int):
+        """Delete a comment and all its replies from the document.
+
+        [cross-platform mode] Requires the .docx file to be CLOSED in Word.
+        On Windows with the file open, use word_live_delete_comment instead.
+        """
+        return comment_write_tools.delete_comment(filename, comment_id)
