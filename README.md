@@ -1,12 +1,10 @@
 <div align="center">
 
-[![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=word&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJ3b3JkLW1jcC1saXZlIl19)
-
 # word-mcp-live-cheemscheems
 
 **The only MCP server that edits Word documents while they're open**
 
-`Live editing` &middot; `Tracked changes` &middot; `Per-action undo` &middot; `124 tools` &middot; `Cross-platform`
+`Live editing` &middot; `Tracked changes` &middot; `Per-action undo` &middot; `121 tools` &middot; `Cross-platform`
 
 [![PyPI](https://img.shields.io/pypi/v/word-mcp-live-cheemscheems?color=blue)](https://pypi.org/project/word-mcp-live-cheemscheems/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
@@ -56,11 +54,22 @@ https://github.com/user-attachments/assets/fbb09af4-1e25-4e49-94d0-45b363278810
 - **Threaded comments** — Add, reply, resolve, and delete comments like a human reviewer.
 - **Layout diagnostics** — Detects formatting problems before they become print disasters.
 - **Equations & cross-references** — Insert math formulas and auto-updating references.
-- **124 tools** — The most comprehensive Word MCP server available.
+- **121 tools** — The most comprehensive Word MCP server available.
 - **Automatic backups** — Periodic backup every 5 minutes + on-demand backup before destructive operations. Stored in `_backup/` folder, max 5 copies kept.
 - **Path sandbox** — Optional `MCP_ALLOWED_DIR` restricts file access to a single directory tree.
 - **COM timeout protection** — Long-running COM operations (replace, save, etc.) have configurable timeouts to prevent server hang on remote/unstable Word connections.
 - **Security-hardened** — All 10 audit findings from the initial security review have been addressed (fake signatures removed, AppleScript injection fixed, path traversal prevented, predictable temp files eliminated, and more).
+
+## What's New
+
+The server core was rebuilt on FastMCP 3.x (full details in the [CHANGELOG](CHANGELOG.md)):
+
+- **FastMCP 3.x** — pinned `fastmcp>=3.0,<4`; the server is built by a `build_server(settings)` factory with lifespan-managed document hooks and backups, plus per-tool logging middleware.
+- **Typed configuration** — new `WORD_MCP_*` environment variables (pydantic-settings); all legacy names (`MCP_TRANSPORT`, `WORD_MCP_LIVE_API_KEY`, `MCP_AUTHOR`, …) keep working as aliases, so existing configs need no changes.
+- **Streamable HTTP** — `WORD_MCP_TRANSPORT=http` serves the modern streamable HTTP transport with native bearer-token authentication and an unauthenticated `GET /health` endpoint. The deprecated SSE transport was removed.
+- **Platform-aware tools** — live editing tools are tagged `live` and automatically hidden on platforms without a Word COM/JXA bridge (Linux), instead of failing at call time.
+- **Modular registration** — tool registrations live in `word_mcp_live_cheemscheems/mcp_tools/`, one module per category.
+- **Error masking** — exception details are masked from clients by default on HTTP deployments.
 
 ## Quick Start
 
@@ -125,9 +134,7 @@ Add to your `.mcp.json`:
 <details>
 <summary><b>Cursor</b></summary>
 
-**One-click:** Click the install button at the top of this page.
-
-**Manual:** Add to `~/.cursor/mcp.json`:
+Add to `~/.cursor/mcp.json`:
 
 ```json
 {
@@ -407,15 +414,5 @@ MIT License — see [LICENSE](LICENSE) for details.
 > **Always maintain backups** of important documents before using this tool. The automatic backup feature (stored in `_backup/` folders) provides a safety net, but should not be relied upon as your sole backup strategy.
 >
 > By using this software, you acknowledge that you understand and accept these risks.
-
-## Star History
-
-<a href="https://star-history.com/#cheemscheems/word-mcp-live&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=cheemscheems/word-mcp-live&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=cheemscheems/word-mcp-live&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=cheemscheems/word-mcp-live&type=Date" />
- </picture>
-</a>
 
 <!-- mcp-name: io.github.cheemscheems/word-mcp-live -->
