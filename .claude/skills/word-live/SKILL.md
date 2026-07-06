@@ -14,8 +14,11 @@ description: Route Word document work to the right word-mcp-live tools (cross-pl
    → Use the cross-platform tools (no prefix).
 3. **Creating a new document?**
    → One `create_document_from_markdown` call, not a chain of
-   `add_paragraph`/`add_heading` calls. Fall back to incremental tools only
-   for things Markdown can't express (images, footnotes, protection).
+   `add_paragraph`/`add_heading` calls. For branded output pass
+   `template=<path.docx>` — styles, headers/footers and page setup are
+   inherited; the template's body content is not. Fall back to incremental
+   tools only for things Markdown can't express (images, footnotes,
+   protection).
 4. **Need raw OOXML surgery beyond any tool?**
    → `get_document_xml` to inspect; escalate to an unpack/edit/pack pipeline
    only as a last resort.

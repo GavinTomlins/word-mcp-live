@@ -1,4 +1,4 @@
-"""Build a complete .docx from a Markdown subset in one pass (ADR 0004).
+"""Build a complete .docx from a Markdown subset in one pass (ADR 0004/0006).
 
 Supported subset: ``#``–``######`` headings, paragraphs, ``**bold**``,
 ``*italic*``, ``***bold italic***``, `` `code` ``, ``[text](url)`` links,
@@ -6,14 +6,22 @@ nested ``-``/``*``/``+`` bullet lists and ``1.`` numbered lists (2-space
 indent per level), GitHub-style pipe tables (header row bold), and ``---``
 horizontal rules rendered as a bottom-border paragraph (never a table used
 as a divider).
+
+With ``template=`` the document is built on a copy of an existing .docx:
+its styles, headers/footers, and page setup are inherited, its body content
+is cleared, and the Markdown content is written using the template's own
+style definitions — with fallbacks for style names the template does not
+define (lists degrade to indented bullet/number text, tables to manually
+bordered grids).
 """
 
 import re
+import shutil
 
 from docx import Document
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.shared import RGBColor
+from docx.shared import Inches
 from docx.opc.constants import RELATIONSHIP_TYPE as RT
 
 _INLINE_RE = re.compile(
@@ -26,7 +34,7 @@ _INLINE_RE = re.compile(
 
 _HEADING_RE = re.compile(r"^(#{1,6})\s+(.*)$")
 _BULLET_RE = re.compile(r"^(\s*)[-*+]\s+(.*)$")
-_NUMBER_RE = re.compile(r"^(\s*)\d+[.)]\s+(.*)$")
+_NUMBER_RE = re.compile(r"^(\s*)(\d+)[.)]\s+(.*)$")
 _TABLE_ROW_RE = re.compile(r"^\s*\|.*\|\s*$")
 _TABLE_SEP_RE = re.compile(r"^\s*\|(\s*:?-{3,}:?\s*\|)+\s*$")
 _HR_RE = re.compile(r"^\s*(-{3,}|\*{3,}|_{3,})\s*$")
@@ -100,12 +108,45 @@ def _list_style(kind: str, level: int) -> str:
     return base if level == 0 else f"{base} {min(level, 2) + 1}"
 
 
+def _list_paragraph(doc, kind: str, level: int):
+    """Add a list paragraph, falling back when the template lacks list styles.
+
+    Returns ``(paragraph, styled)``; when ``styled`` is False the caller
+    must render the marker as literal text.
+    """
+    base = "List Bullet" if kind == "bullet" else "List Number"
+    for name in (_list_style(kind, level), base, "List Paragraph"):
+        try:
+            return doc.add_paragraph(style=name), True
+        except KeyError:
+            continue
+    paragraph = doc.add_paragraph()
+    paragraph.paragraph_format.left_indent = Inches(0.25 * (level + 1))
+    return paragraph, False
+
+
+def _apply_table_borders(table) -> None:
+    tbl_pr = table._tbl.tblPr
+    borders = OxmlElement("w:tblBorders")
+    for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
+        el = OxmlElement(f"w:{edge}")
+        el.set(qn("w:val"), "single")
+        el.set(qn("w:sz"), "4")
+        el.set(qn("w:color"), "auto")
+        borders.append(el)
+    tbl_pr.append(borders)
+
+
 def _add_table(doc, rows: list[list[str]], has_header: bool) -> None:
     if not rows:
         return
     cols = max(len(r) for r in rows)
     table = doc.add_table(rows=len(rows), cols=cols)
-    table.style = "Table Grid"
+    try:
+        table.style = "Table Grid"
+    except KeyError:
+        # Template has no Table Grid style — draw the grid directly.
+        _apply_table_borders(table)
     for r_idx, row in enumerate(rows):
         for c_idx in range(cols):
             cell_text = row[c_idx] if c_idx < len(row) else ""
@@ -118,14 +159,34 @@ def _split_table_row(line: str) -> list[str]:
     return [c.strip().replace("\\|", "|") for c in re.split(r"(?<!\\)\|", stripped)]
 
 
+def _clear_body(doc) -> None:
+    """Remove all body content while preserving the trailing sectPr
+    (page setup, headers/footers)."""
+    body = doc.element.body
+    for child in list(body):
+        if child.tag != qn("w:sectPr"):
+            body.remove(child)
+
+
 def markdown_to_document(
     markdown: str,
     filename: str,
     title: str | None = None,
     author: str | None = None,
+    template: str | None = None,
 ) -> dict:
-    """Build ``filename`` from Markdown; returns creation statistics."""
-    doc = Document()
+    """Build ``filename`` from Markdown; returns creation statistics.
+
+    With ``template``, the output starts as a copy of that .docx: styles,
+    headers/footers and page setup are inherited and the template's body
+    content is cleared before the Markdown content is written.
+    """
+    if template:
+        shutil.copyfile(template, filename)
+        doc = Document(filename)
+        _clear_body(doc)
+    else:
+        doc = Document()
     if title:
         doc.core_properties.title = title
     if author:
@@ -154,8 +215,13 @@ def markdown_to_document(
         if m:
             flush_paragraph()
             level = len(m.group(1))
-            heading = doc.add_heading("", level=level)
-            _add_inline(heading, m.group(2).strip())
+            try:
+                heading = doc.add_heading("", level=level)
+                _add_inline(heading, m.group(2).strip())
+            except KeyError:
+                # Template lacks this heading style — bold paragraph instead.
+                heading = doc.add_paragraph()
+                _add_inline(heading, m.group(2).strip(), bold=True)
             stats["headings"] += 1
             i += 1
             continue
@@ -180,13 +246,19 @@ def markdown_to_document(
             stats["tables"] += 1
             continue
 
-        m = _BULLET_RE.match(line) or _NUMBER_RE.match(line)
-        if m:
+        bullet_m = _BULLET_RE.match(line)
+        number_m = None if bullet_m else _NUMBER_RE.match(line)
+        if bullet_m or number_m:
             flush_paragraph()
-            kind = "bullet" if _BULLET_RE.match(line) else "number"
+            kind = "bullet" if bullet_m else "number"
+            m = bullet_m or number_m
             level = len(m.group(1)) // 2
-            paragraph = doc.add_paragraph(style=_list_style(kind, level))
-            _add_inline(paragraph, m.group(2).strip())
+            item_text = m.group(2 if bullet_m else 3).strip()
+            paragraph, styled = _list_paragraph(doc, kind, level)
+            if not styled:
+                marker = "• " if bullet_m else f"{number_m.group(2)}. "
+                paragraph.add_run(marker)
+            _add_inline(paragraph, item_text)
             stats["list_items"] += 1
             i += 1
             continue

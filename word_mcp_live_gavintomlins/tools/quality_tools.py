@@ -43,19 +43,33 @@ async def create_document_from_markdown(
     markdown: str,
     title: str = None,
     author: str = None,
+    template: str = None,
 ) -> str:
-    """Create a complete document from Markdown in a single call."""
+    """Create a complete document from Markdown in a single call.
+
+    With ``template``, the new document inherits that .docx's styles,
+    headers/footers and page setup (the template's body content is not
+    carried over).
+    """
     filename = ensure_docx_extension(filename)
     is_writeable, error_message = check_file_writeable(filename)
     if not is_writeable:
         return f"Cannot create document: {error_message}"
+    if template:
+        template = ensure_docx_extension(template)
+        if not os.path.exists(template):
+            return f"Template {template} does not exist"
     try:
-        stats = markdown_to_document(markdown, filename, title=title, author=author)
+        stats = markdown_to_document(
+            markdown, filename, title=title, author=author, template=template
+        )
     except Exception as e:
         return f"Failed to create document from markdown: {e}"
     detail = ", ".join(f"{v} {k}" for k, v in stats.items() if v)
+    source = f" from template {template}" if template else ""
     return (
-        f"Document {filename} created successfully ({detail or 'empty document'}). "
+        f"Document {filename} created successfully{source} "
+        f"({detail or 'empty document'}). "
         "Verify with validate_document and get_document_markdown before delivery."
     )
 

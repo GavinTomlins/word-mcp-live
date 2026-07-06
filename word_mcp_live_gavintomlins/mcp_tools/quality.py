@@ -57,18 +57,25 @@ def register(mcp):
         markdown: str,
         title: str = None,
         author: str = None,
+        template: str = None,
     ):
         """Create a complete Word document from Markdown in one call.
 
         Supports #–###### headings, paragraphs, **bold**, *italic*, `code`,
         [links](url), nested bullet/numbered lists (2-space indent per
         level), pipe tables (header row bold), and --- horizontal rules.
+
+        Pass template=<path to a .docx> to build on that template: the new
+        document inherits its styles (headings, fonts, colors),
+        headers/footers and page setup, while the template's own body
+        content is not carried over. Use this for branded deliverables.
+
         Prefer this over many add_paragraph/add_heading calls when creating
         a new document. After creation, verify with validate_document and
         get_document_markdown.
         """
         return quality_tools.create_document_from_markdown(
-            filename, markdown, title, author
+            filename, markdown, title, author, template
         )
 
     @mcp.tool(

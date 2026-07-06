@@ -18,9 +18,12 @@ WORKFLOW_GUIDE = """\
 
 1. Prefer **one** `create_document_from_markdown` call over many
    incremental add_* calls.
-2. If a template is provided, act as a form-filler, not a designer: replace
+2. For branded output, pass `template=<path.docx>` — the new document
+   inherits the template's styles, headers/footers and page setup (the
+   template's body content is not carried over).
+3. If a template is provided, act as a form-filler, not a designer: replace
    placeholders, keep the format.
-3. Added a table of contents or page-number fields? Call
+4. Added a table of contents or page-number fields? Call
    `set_update_fields_on_open` so readers do not see stale values.
 
 ## Verifying — work is not done until verified
